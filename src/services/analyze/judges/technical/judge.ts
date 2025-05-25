@@ -6,8 +6,6 @@ import { groqFetch } from "../../../../transport/groq";
 import type { HackathonChallenges, Project } from "../../../../types/entities";
 import { checkPromptSize } from "../../../../utils/prompt-size";
 import { getRepoName } from "../../../../utils/repos";
-import { collablandKnowledge } from "../collabland-knowledge";
-import { gaiaKnowledge } from "../gaia-knowledge";
 import type { LLMProvider } from "../types";
 import { dynamicChallengeJudgePrompt } from "./prompt";
 
@@ -30,20 +28,12 @@ export const judgeTechnicalImplementation = async (
         ${description}
         </project_description>
 
-        <hackathon_sponsor_docs_1>
-        ${gaiaKnowledge}
-        </hackathon_sponsor_docs_1>
-
-        <hackathon_sponsor_docs_2>
-        ${collablandKnowledge}
-        </hackathon_sponsor_docs_2>
-
         <project_code>
         ${generatedFilePrompt}
         </project_code>
 
         <user_instructions>
-         Please analyze the usage of gaianet in this repo according to the requirements. Produce a final score on 100 combining your full analysis. Ensure you communicate the final score on 100 clearly at the end of your evaluation.
+         Please analyze the usage of the technologies in this repo according to the requirements. Produce a final score on 100 combining your full analysis. Ensure you communicate the final score on 100 clearly at the end of your evaluation.
         </user_instructions>
 
         <meta_prompt>

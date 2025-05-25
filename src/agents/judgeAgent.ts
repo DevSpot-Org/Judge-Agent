@@ -9,16 +9,16 @@ class JudgeBot {
   failedSubmissions: string[];
 
   constructor() {
-    this.failedSubmissions = ["ds"];
+    this.failedSubmissions = [];
   }
 
   async start(project_id: number) {
     await this.getProjectInfo(project_id)
       .then(this.validateProject)
       .then(this.bundleProject)
-      .then(this.generateProjectChallenges);
-    //   .then(this.judgeProject)
-    //   .then(this.writeReportToDb);
+      // .then(this.generateProjectChallenges);
+      .then(this.judgeProject)
+      .then(this.writeReportToDb);
 
     this.logFailedSubmissions();
   }

@@ -6,8 +6,6 @@ import { groqFetch } from "../../../../transport/groq";
 import type { HackathonChallenges, Project } from "../../../../types/entities";
 import { checkPromptSize } from "../../../../utils/prompt-size";
 import { getRepoName } from "../../../../utils/repos";
-import { collablandKnowledge } from "../collabland-knowledge";
-import { gaiaKnowledge } from "../gaia-knowledge";
 import type { LLMProvider } from "../types";
 import { dynamicUXJudgePrompt } from "./prompt";
 
@@ -30,20 +28,12 @@ export const judgeUX = async (
         ${description}
         </project_description>
 
-        <hackathon_sponsor_docs_1>
-        ${gaiaKnowledge}
-        </hackathon_sponsor_docs_1>
-
-        <hackathon_sponsor_docs_2>
-        ${collablandKnowledge}
-        </hackathon_sponsor_docs_2>
-
         <project_code>
         ${generatedFilePrompt}
         </project_code>
 
         <user_instructions>
-          Please analyze the UX aspects of this project according to the criteria above, with special attention to how it integrates with GaiaNet's decentralized AI infrastructure. Consider both traditional UX metrics and blockchain/AI-specific interaction patterns. Produce a final UX score out of 100 combining your full analysis.
+          Please analyze the UX aspects of this project according to the criteria above. Consider both traditional UX metrics and blockchain/AI-specific interaction patterns. Produce a final UX score out of 100 combining your full analysis.
         </user_instructions>
 
         <meta_prompt>

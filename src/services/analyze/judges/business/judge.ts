@@ -6,8 +6,6 @@ import { groqFetch } from "../../../../transport/groq";
 import type { HackathonChallenges, Project } from "../../../../types/entities";
 import { checkPromptSize } from "../../../../utils/prompt-size";
 import { getRepoName } from "../../../../utils/repos";
-import { collablandKnowledge } from "../collabland-knowledge";
-import { gaiaKnowledge } from "../gaia-knowledge";
 import type { LLMProvider } from "../types";
 import { dynamicBusinessJudgePrompt } from "./prompt";
 
@@ -29,14 +27,6 @@ export const judgeBusinessPotential = async (
         <project_description>
         ${description}
         </project_description>
-
-        <hackathon_sponsor_docs_1>
-        ${gaiaKnowledge}
-        </hackathon_sponsor_docs_1>
-
-        <hackathon_sponsor_docs_2>
-        ${collablandKnowledge}
-        </hackathon_sponsor_docs_2>
 
         <project_code>
         ${generatedFilePrompt}
