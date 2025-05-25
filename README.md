@@ -1,8 +1,8 @@
-# EthGlobal Judge Agent
+# DevSpot Judge Agent
 
 ## Overview
 
-The EthGlobal Judge Agent is an AI-powered tool designed to score hackathon submissions from EthGlobal. This repository contains the source code for the agent, which is built using a combination of TypeScript, Bun, and various dependencies.
+The DevSpot Judge Agent (for DevSpot) is an AI-powered tool designed to score hackathon submissions, particularly from DevSpot events. This repository contains the source code for the agent, which is built using a combination of TypeScript, Bun, and various dependencies.
 
 The project makes two key architectural choices:
 
@@ -11,14 +11,14 @@ The project makes two key architectural choices:
 
 ## Future Improvements
 
-The EthGlobal Judge Agent could be enhanced with several key improvements:
+The DevSpot Judge Agent could be enhanced with several key improvements:
 
 - **Smart Chunking Strategy**: Implement an advanced chunking system with semantic similarity search to handle larger codebases more efficiently while maintaining context coherence.
 - **Intelligent File Selection**: Develop a search algorithm to automatically identify and prioritize the most relevant files for analysis, optimizing processing time and resource usage.
 
 ## Tech Stack
 
-The EthGlobal Judge Agent leverages the following technologies:
+The DevSpot Judge Agent leverages the following technologies:
 
 - **TypeScript**: A superset of JavaScript that adds optional static typing and other features to enhance development experience and code reliability.
 

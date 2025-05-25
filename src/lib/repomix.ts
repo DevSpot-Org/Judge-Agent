@@ -1,6 +1,7 @@
 import { $ } from "bun";
 import path from "path";
 import { TEMPORARY_FOLDER } from "../config";
+import { excludePatterns } from "../config/exclude-patterns";
 import type { Project } from "../types/entities";
 import { getRepoName } from "../utils/repos";
 
@@ -18,9 +19,10 @@ const repomixBundler = async (submission: Project) => {
 
   const outputFileName = `${repoName}-pack.xml`;
   const outputPath = path.join(repoPath, outputFileName);
+  const ignoreGlobString = [...excludePatterns].join(",");
 
   try {
-    await $`npx repomix --remote ${repoUrl} --output ${outputPath} --compress `;
+    await $`npx repomix --remote ${repoUrl} --output ${outputPath} --compress --ignore ${ignoreGlobString}`;
 
     return outputPath;
   } catch (error) {
