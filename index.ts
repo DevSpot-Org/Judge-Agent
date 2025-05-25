@@ -1,11 +1,11 @@
-import DevspotService from "./src/devspot";
-import repomixBundler from "./src/lib/repomix";
-import { SubmissionSchema } from "./src/schema";
-import { produceReport } from "./src/services/report/produce-report";
-import type { Project } from "./src/types/entities";
 // import { logParsedDataResults } from "./src/utils/logging";
 
+import JudgeBot from "./src/agents/judgeAgent";
+
 const main = async () => {
+  const bot = new JudgeBot();
+  bot.start(41);
+
   // const submissionData = await getSubmissionsData();
   // logParsedDataResults(submissionData);
   const failedSubmissions: string[] = [];
@@ -46,108 +46,5 @@ const main = async () => {
   // await findHighestScore();
 };
 
-// main();
+main();
 
-// The jdge bot takes in a project information
-//
-
-class JudgeBot {
-  failedSubmissions: string[];
-
-  constructor() {
-    this.failedSubmissions = ["ds"];
-  }
-
-  async start(project_id: number) {
-    await this.getProjectInfo(project_id)
-      .then(this.validateProject)
-      .then(this.bundleProject)
-      .then(this.judgeProject)
-      .then(this.writeReportToDb)
-      .then(this.logFailedSubmissions);
-
-      this.logFailedSubmissions()
-  }
-
-  private async getProjectInfo(project_id: number) {
-    try {
-      const devSpotService = new DevspotService();
-
-      const project = await devSpotService.getProjectInformation(project_id);
-
-      return project;
-    } catch (error) {
-      console.error(`Error fetching project information: ${error}`);
-      throw error;
-    }
-  }
-
-  private async validateProject(project: Project) {
-    try {
-      const result = await SubmissionSchema.safeParseAsync(project);
-
-      if (!result.success) {
-        throw new Error(`Invalid Project - ${result.error}`);
-      }
-
-      return project;
-    } catch (error) {
-      console.error(`Error validating project information: ${error}`);
-      this.failedSubmissions.push(project.name);
-
-      throw error;
-    }
-  }
-
-  private async bundleProject(project: Project) {
-    try {
-      await repomixBundler(project);
-
-      return project;
-    } catch (error) {
-      console.error(`Error bundling project codebase: ${error}`);
-      this.failedSubmissions.push(project.name);
-
-      throw error;
-    }
-  }
-
-  private async judgeProject(project: Project) {
-    for (const challenge of project.project_challenges ?? []) {
-      const hackathonChallenge = challenge.hackathon_challenges!;
-
-      try {
-        console.log(
-          `\nProcessing report for: ${hackathonChallenge?.challenge_name}`
-        );
-        await produceReport(project, hackathonChallenge, "gemini");
-        console.log("Report generated successfully!");
-      } catch (error) {
-        this.failedSubmissions.push(project.name);
-
-        console.error(
-          `Failed to process report for ${hackathonChallenge.challenge_name}:`,
-          error
-        );
-      }
-    }
-  }
-
-  private logFailedSubmissions() {
-    if (this.failedSubmissions.length > 0) {
-      console.log("\n\nFailed to analyze the following submissions:");
-      this.failedSubmissions.forEach((name) => console.log(`- ${name}`));
-      console.log(`Total failed: ${this.failedSubmissions.length}`);
-    } else {
-      console.log("\n\nAll submissions were analyzed successfully!");
-    }
-  }
-
-  async writeReportToDb() {
-    // Aggregate the reports
-    //...
-  }
-}
-
-const bot = new JudgeBot();
-bot.start(41);
