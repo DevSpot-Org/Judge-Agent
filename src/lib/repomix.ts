@@ -1,0 +1,31 @@
+import { $ } from "bun";
+import path from "path";
+import { TEMPORARY_FOLDER } from "../config";
+import type { Project } from "../types/entities";
+import { getRepoName } from "../utils/repos";
+
+/**
+ * Processes a remote repository and generates a Repomix XML summary.
+ * @param repoUrl - The URL of the remote repository.
+ * @param outputDir - The directory to store the output file. Defaults to the current working directory.
+ * @returns The path to the generated XML file.
+ */
+const repomixBundler = async (submission: Project) => {
+  const { project_url: repoUrl } = submission;
+
+  const repoName = getRepoName(repoUrl!);
+  const repoPath = `${TEMPORARY_FOLDER}/repositories`;
+
+  const outputFileName = `${repoName}-pack.xml`;
+  const outputPath = path.join(repoPath, outputFileName);
+
+  try {
+    await $`npx repomix --remote ${repoUrl} --output ${outputPath} --compress `;
+
+    return outputPath;
+  } catch (error) {
+    console.log(`Error while bundling with repomix: ${error}`);
+  }
+};
+
+export default repomixBundler;
