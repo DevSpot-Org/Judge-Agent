@@ -1,9 +1,9 @@
 import { $ } from "bun";
 import path from "path";
-import { TEMPORARY_FOLDER } from "../config";
-import { excludePatterns } from "../config/exclude-patterns";
+import { TEMPORARY_FOLDER } from "../constants";
+import { excludePatterns } from "../constants/exclude-patterns";
 import type { Project } from "../types/entities";
-import { getRepoName } from "../utils/repos";
+import { getRepoName } from "./repos";
 
 /**
  * Processes a remote repository and generates a Repomix XML summary.

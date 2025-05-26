@@ -1,4 +1,4 @@
-import type { HackathonChallenges } from "../../../../types/entities";
+import type { HackathonChallenges } from "../../types/entities";
 
 export const dynamicUXJudgePrompt = (challengeData: HackathonChallenges) => `
 You are a Senior User Experience Judge with expertise in evaluating digital product design, user research, and human-computer interaction. Your role is to assess submissions with a focus on user-centered design, usability, and overall user experience quality.

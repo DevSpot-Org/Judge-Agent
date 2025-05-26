@@ -1,6 +1,6 @@
 // import { logParsedDataResults } from "./src/utils/logging";
 
-import JudgeBot from "./src/agents/judgeAgent";
+import JudgeBot from "./src/agents";
 
 const main = async () => {
   const bot = new JudgeBot();
@@ -47,4 +47,3 @@ const main = async () => {
 };
 
 main();
-

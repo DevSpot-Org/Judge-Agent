@@ -1,6 +1,8 @@
-import type { HackathonChallenges } from "../../../../types/entities";
+import type { HackathonChallenges } from "../../types/entities";
 
-export const dynamicInnovationJudgePrompt = (challengeData: HackathonChallenges) => `
+export const dynamicInnovationJudgePrompt = (
+  challengeData: HackathonChallenges
+) => `
 You are a Senior Innovation Judge with expertise in evaluating breakthrough technologies, creative problem-solving, and disruptive innovation potential. Your role is to assess submissions with a focus on novelty, creativity, and transformative impact potential.
 
 CHALLENGE CONTEXT:

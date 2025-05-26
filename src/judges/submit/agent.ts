@@ -1,14 +1,15 @@
 import fs from "fs";
 import path from "path";
-import { TEMPORARY_FOLDER } from "../../config";
-import DevspotService from "../../devspot";
-import { geminiFetch } from "../../transport/gemini";
-import { groqFetch } from "../../transport/groq";
+import { TEMPORARY_FOLDER } from "../../constants";
+
+import DevspotService from "../../agents/devspot";
+import type { LLMProvider } from "../../llmProviders";
+import { geminiFetch } from "../../llmProviders/gemini";
+import { groqFetch } from "../../llmProviders/groq";
 import type { Project } from "../../types/entities";
 import { checkPromptSize } from "../../utils/prompt-size";
 import { getRepoName } from "../../utils/repos";
 import { saveToMarkdown } from "../../utils/write-md-file";
-import type { LLMProvider } from "../analyze/judges/types";
 import { challengeMatchingPrompt } from "./prompt";
 
 export const generateProjectInfo = async (

@@ -1,9 +1,13 @@
-import DevspotService from "../devspot";
-import repomixBundler from "../lib/repomix";
+import fs from "fs";
+import path from "path";
+import { TEMPORARY_FOLDER } from "../constants";
+import { generateProjectInfo } from "../judges/submit/agent";
 import { SubmissionSchema } from "../schema";
-import { produceReport } from "../services/report/produce-report";
-import { generateProjectInfo } from "../services/submit/agent";
 import type { Project } from "../types/entities";
+import repomixBundler from "../utils/repomix";
+import { getRepoName } from "../utils/repos";
+import DevspotService from "./devspot";
+import Judge from "./judge";
 
 class JudgeBot {
   failedSubmissions: string[];
@@ -16,11 +20,10 @@ class JudgeBot {
     await this.getProjectInfo(project_id)
       .then(this.validateProject)
       .then(this.bundleProject)
-      // .then(this.generateProjectChallenges);
       .then(this.judgeProject)
-      .then(this.writeReportToDb);
+      .then(this.cleanup);
 
-    this.logFailedSubmissions();
+    // this.logFailedSubmissions();
   }
 
   private async getProjectInfo(project_id: number) {
@@ -74,7 +77,17 @@ class JudgeBot {
         console.log(
           `\nProcessing report for: ${hackathonChallenge?.challenge_name}`
         );
-        await produceReport(project, hackathonChallenge, "gemini");
+        const judge = new Judge(project, hackathonChallenge);
+        const response = await judge.projectJudgeAnalysis();
+
+        const devSpotService = new DevspotService();
+
+        await devSpotService.updateProjectJudgeReport(
+          project.id,
+          hackathonChallenge.id,
+          response
+        );
+
         console.log("Report generated successfully!");
       } catch (error) {
         this.failedSubmissions.push(project.name);
@@ -85,6 +98,8 @@ class JudgeBot {
         );
       }
     }
+
+    return project;
   }
 
   private logFailedSubmissions() {
@@ -109,9 +124,20 @@ class JudgeBot {
     }
   }
 
-  async writeReportToDb() {
-    // Aggregate the reports
-    //...
+  private cleanup(project: Project) {
+    const repoName = getRepoName(project.project_url!);
+    const repoPath = `${TEMPORARY_FOLDER}/repositories`;
+
+    const outputFileName = `${repoName}-pack.xml`;
+    const outputPath = path.join(repoPath, outputFileName);
+
+    try {
+      if (fs.existsSync(outputPath)) {
+        fs.rmSync(outputPath, { recursive: true, force: true });
+      }
+    } catch (error) {
+      console.error(`Error cleaning up repository files: ${error}`);
+    }
   }
 }
 

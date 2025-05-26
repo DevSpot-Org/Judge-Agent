@@ -906,54 +906,69 @@ export type Database = {
       judging_entries: {
         Row: {
           business_feedback: string
+          business_summary: string
           challenge_id: number
           created_at: string
           flagged_comments: string | null
           flagged_reason: string | null
           general_comments: string
+          general_comments_summary: string
           id: number
           innovation_feedback: string
-          judging_id: number
+          innovation_summary: string
+          judging_id: number | null
           judging_status: Database["public"]["Enums"]["judging_status"]
           project_id: number
           score: number
           technical_feedback: string
+          technical_summary: string
           updated_at: string | null
           ux_feedback: string
+          ux_summary: string
         }
         Insert: {
           business_feedback: string
+          business_summary?: string
           challenge_id: number
           created_at?: string
           flagged_comments?: string | null
           flagged_reason?: string | null
           general_comments: string
+          general_comments_summary?: string
           id?: number
           innovation_feedback: string
-          judging_id: number
+          innovation_summary?: string
+          judging_id?: number | null
           judging_status: Database["public"]["Enums"]["judging_status"]
           project_id: number
           score: number
           technical_feedback: string
+          technical_summary?: string
           updated_at?: string | null
           ux_feedback: string
+          ux_summary?: string
         }
         Update: {
           business_feedback?: string
+          business_summary?: string
           challenge_id?: number
           created_at?: string
           flagged_comments?: string | null
           flagged_reason?: string | null
           general_comments?: string
+          general_comments_summary?: string
           id?: number
           innovation_feedback?: string
-          judging_id?: number
+          innovation_summary?: string
+          judging_id?: number | null
           judging_status?: Database["public"]["Enums"]["judging_status"]
           project_id?: number
           score?: number
           technical_feedback?: string
+          technical_summary?: string
           updated_at?: string | null
           ux_feedback?: string
+          ux_summary?: string
         }
         Relationships: [
           {

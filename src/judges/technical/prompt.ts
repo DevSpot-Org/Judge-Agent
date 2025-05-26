@@ -1,4 +1,4 @@
-import type { HackathonChallenges } from "../../../../types/entities";
+import type { HackathonChallenges } from "../../types/entities";
 
 export const dynamicChallengeJudgePrompt = (
   challengeData: HackathonChallenges

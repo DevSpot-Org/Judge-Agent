@@ -1,8 +1,7 @@
-import { geminiFetch } from "../../../transport/gemini";
-import { groqFetch } from "../../../transport/groq";
-import type { Project } from "../../../types/entities";
-import type { LLMProvider } from "../../analyze/judges/types";
-
+import type { LLMProvider } from "../../llmProviders";
+import { geminiFetch } from "../../llmProviders/gemini";
+import { groqFetch } from "../../llmProviders/groq";
+import type { Project } from "../../types/entities";
 import { finalJudgeMetaPrompt } from "./prompt";
 
 interface JudgeFinalReviewParams {
@@ -62,6 +61,7 @@ export const judgeFinalReview = async ({
          - Provide a holistic view of the project's significance
       
       Ensure you extract the numerical scores from each assessment and apply the weights correctly in your final calculation.
+      at the end of your response, please provide a final score for the project in the form "The final score is - X"
       </user_instructions>
     `;
 

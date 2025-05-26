@@ -1,12 +1,13 @@
 import fs from "fs";
 import path from "path";
-import { TEMPORARY_FOLDER } from "../../../../config";
-import { geminiFetch } from "../../../../transport/gemini";
-import { groqFetch } from "../../../../transport/groq";
-import type { HackathonChallenges, Project } from "../../../../types/entities";
-import { checkPromptSize } from "../../../../utils/prompt-size";
-import { getRepoName } from "../../../../utils/repos";
-import type { LLMProvider } from "../types";
+
+import { TEMPORARY_FOLDER } from "../../constants";
+import type { LLMProvider } from "../../llmProviders";
+import { geminiFetch } from "../../llmProviders/gemini";
+import { groqFetch } from "../../llmProviders/groq";
+import type { HackathonChallenges, Project } from "../../types/entities";
+import { checkPromptSize } from "../../utils/prompt-size";
+import { getRepoName } from "../../utils/repos";
 import { dynamicChallengeJudgePrompt } from "./prompt";
 
 export const judgeTechnicalImplementation = async (
