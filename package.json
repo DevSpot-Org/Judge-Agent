@@ -4,7 +4,6 @@
   "description": "AI judge agent to score hackathon submissions from Devspot",
   "main": "dist/index.js",
   "scripts": {
-    "start": "bun run ./index.ts",
     "start:server": "bun run ./src/server.ts",
     "test": "vitest",
     "generate-types": "npx supabase gen types typescript --project-id pbnaslxybqdeosvgknbq --schema public > src/types/database.ts"

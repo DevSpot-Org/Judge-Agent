@@ -58,12 +58,9 @@ class DevspotService {
   }
 
   private extractAndNormalizeScore(text: string): number {
-    const match = text.match(/score\s*\((\d+(\.\d+)?)\/100\)/i);
-    if (match && match[1]) {
-      const score = parseFloat(match[1]);
-      return score / 10;
-    }
-    return 0;
+    const regex = /final score[\s:–—]*([\d]+(?:\.\d+)?)(?=\s*\/\s*100)/i;
+    const match = text.match(regex);
+    return match ? parseFloat(match[1]) : 0;
   }
 
   async updateProjectJudgeReport(
