@@ -1,4 +1,3 @@
-import axios from "axios";
 import cors from "cors";
 import type { Request, Response } from "express";
 import express from "express";
@@ -98,7 +97,7 @@ app.listen(port, async () => {
   setInterval(async () => {
     try {
       console.log("Calling /self endpoint...");
-      await axios.get(`${process.env["ORIGIN_URL"]}/self`);
+      fetch(`${process.env["ORIGIN_URL"]}/self`);
     } catch (error: any) {
       console.error("Self call failed:", error.message);
     }

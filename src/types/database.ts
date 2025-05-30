@@ -327,7 +327,7 @@ export type Database = {
       }
       hackathon_participants: {
         Row: {
-          application_status: "pending" | "accepted" | "rejected"
+          application_status: Database["public"]["Enums"]["hackathon_participant_application_status"]
           created_at: string
           hackathon_id: number
           id: number
@@ -336,7 +336,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          application_status?: "pending" | "accepted" | "rejected"
+          application_status?: Database["public"]["Enums"]["hackathon_participant_application_status"]
           created_at?: string
           hackathon_id: number
           id?: number
@@ -345,7 +345,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          application_status?: "pending" | "accepted" | "rejected"
+          application_status?: Database["public"]["Enums"]["hackathon_participant_application_status"]
           created_at?: string
           hackathon_id?: number
           id?: number
@@ -564,7 +564,7 @@ export type Database = {
           hackathon_id: number
           id: number
           participant_id: string | null
-          status: "pending" | "confirmed" | "rejected"
+          status: Database["public"]["Enums"]["hackathon_stakes_status"]
           updated_at: string
         }
         Insert: {
@@ -573,7 +573,7 @@ export type Database = {
           hackathon_id: number
           id?: number
           participant_id?: string | null
-          status?: "pending" | "confirmed" | "rejected"
+          status?: Database["public"]["Enums"]["hackathon_stakes_status"]
           updated_at?: string
         }
         Update: {
@@ -582,7 +582,7 @@ export type Database = {
           hackathon_id?: number
           id?: number
           participant_id?: string | null
-          status?: "pending" | "confirmed" | "rejected"
+          status?: Database["public"]["Enums"]["hackathon_stakes_status"]
           updated_at?: string
         }
         Relationships: [
@@ -802,13 +802,7 @@ export type Database = {
       hackathons: {
         Row: {
           allow_multiple_teams: boolean
-          application_method:
-            | "join"
-            | "stake"
-            | "apply"
-            | "apply_additional"
-            | "apply_stake"
-            | "apply_additional_stake"
+          application_method: Database["public"]["Enums"]["hackathon_application_method"]
           avatar_url: string
           banner_url: string
           created_at: string
@@ -823,23 +817,17 @@ export type Database = {
           organizer_id: number
           sponsors: Json[]
           start_date: string
-          status: "live" | "upcoming" | "ended"
+          status: Database["public"]["Enums"]["hackathon_status"]
           subdomain: string
           tags: string[] | null
           team_limit: number | null
           technologies: string[] | null
-          type: "virtual" | "physical"
+          type: Database["public"]["Enums"]["hackathon_type"]
           updated_at: string
         }
         Insert: {
           allow_multiple_teams?: boolean
-          application_method:
-            | "join"
-            | "stake"
-            | "apply"
-            | "apply_additional"
-            | "apply_stake"
-            | "apply_additional_stake"
+          application_method: Database["public"]["Enums"]["hackathon_application_method"]
           avatar_url: string
           banner_url: string
           created_at?: string
@@ -854,23 +842,17 @@ export type Database = {
           organizer_id: number
           sponsors?: Json[]
           start_date: string
-          status?: "live" | "upcoming" | "ended"
+          status?: Database["public"]["Enums"]["hackathon_status"]
           subdomain: string
           tags?: string[] | null
           team_limit?: number | null
           technologies?: string[] | null
-          type: "virtual" | "physical"
+          type: Database["public"]["Enums"]["hackathon_type"]
           updated_at?: string
         }
         Update: {
           allow_multiple_teams?: boolean
-          application_method?:
-            | "join"
-            | "stake"
-            | "apply"
-            | "apply_additional"
-            | "apply_stake"
-            | "apply_additional_stake"
+          application_method?: Database["public"]["Enums"]["hackathon_application_method"]
           avatar_url?: string
           banner_url?: string
           created_at?: string
@@ -885,12 +867,12 @@ export type Database = {
           organizer_id?: number
           sponsors?: Json[]
           start_date?: string
-          status?: "live" | "upcoming" | "ended"
+          status?: Database["public"]["Enums"]["hackathon_status"]
           subdomain?: string
           tags?: string[] | null
           team_limit?: number | null
           technologies?: string[] | null
-          type?: "virtual" | "physical"
+          type?: Database["public"]["Enums"]["hackathon_type"]
           updated_at?: string
         }
         Relationships: [
@@ -906,6 +888,7 @@ export type Database = {
       judging_entries: {
         Row: {
           business_feedback: string
+          business_score: number
           business_summary: string
           challenge_id: number
           created_at: string
@@ -915,19 +898,23 @@ export type Database = {
           general_comments_summary: string
           id: number
           innovation_feedback: string
+          innovation_score: number
           innovation_summary: string
           judging_id: number | null
           judging_status: Database["public"]["Enums"]["judging_status"]
           project_id: number
           score: number
           technical_feedback: string
+          technical_score: number
           technical_summary: string
           updated_at: string | null
           ux_feedback: string
+          ux_score: number
           ux_summary: string
         }
         Insert: {
           business_feedback: string
+          business_score?: number
           business_summary?: string
           challenge_id: number
           created_at?: string
@@ -937,19 +924,23 @@ export type Database = {
           general_comments_summary?: string
           id?: number
           innovation_feedback: string
+          innovation_score?: number
           innovation_summary?: string
           judging_id?: number | null
           judging_status: Database["public"]["Enums"]["judging_status"]
           project_id: number
           score: number
           technical_feedback: string
+          technical_score?: number
           technical_summary?: string
           updated_at?: string | null
           ux_feedback: string
+          ux_score?: number
           ux_summary?: string
         }
         Update: {
           business_feedback?: string
+          business_score?: number
           business_summary?: string
           challenge_id?: number
           created_at?: string
@@ -959,15 +950,18 @@ export type Database = {
           general_comments_summary?: string
           id?: number
           innovation_feedback?: string
+          innovation_score?: number
           innovation_summary?: string
           judging_id?: number | null
           judging_status?: Database["public"]["Enums"]["judging_status"]
           project_id?: number
           score?: number
           technical_feedback?: string
+          technical_score?: number
           technical_summary?: string
           updated_at?: string | null
           ux_feedback?: string
+          ux_score?: number
           ux_summary?: string
         }
         Relationships: [
@@ -1244,7 +1238,7 @@ export type Database = {
           id: number
           participant_id: string | null
           title: string
-          type: "withdrawal" | "deposit"
+          type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
         }
         Insert: {
@@ -1252,7 +1246,7 @@ export type Database = {
           id?: number
           participant_id?: string | null
           title: string
-          type: "withdrawal" | "deposit"
+          type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
         }
         Update: {
@@ -1260,7 +1254,7 @@ export type Database = {
           id?: number
           participant_id?: string | null
           title?: string
-          type?: "withdrawal" | "deposit"
+          type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
         }
         Relationships: [
@@ -1954,7 +1948,9 @@ export type Database = {
       }
       hackathon_participants_sorted: {
         Row: {
-          application_status: "pending" | "accepted" | "rejected" | null
+          application_status:
+            | Database["public"]["Enums"]["hackathon_participant_application_status"]
+            | null
           created_at: string | null
           hackathon_id: number | null
           id: number | null
@@ -2016,8 +2012,8 @@ export type Database = {
           number_of_participant: number | null
           organizer: Json | null
           start_date: string | null
-          status: "live" | "upcoming" | "ended" | null
-          type: "virtual" | "physical" | null
+          status: Database["public"]["Enums"]["hackathon_status"] | null
+          type: Database["public"]["Enums"]["hackathon_type"] | null
         }
         Relationships: []
       }

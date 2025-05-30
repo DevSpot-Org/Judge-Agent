@@ -105,10 +105,10 @@ class JudgeBot {
 
         console.log("Report generated successfully!");
       } catch (error) {
-        this.failedSubmissions.push(project.name);
+        // this.failedSubmissions.push(project.name);
 
         console.error(
-          `Failed to process report for ${hackathonChallenge.challenge_name}:`,
+          `Failed to process report for ${project.name} ${hackathonChallenge.challenge_name}:`,
           error
         );
       }

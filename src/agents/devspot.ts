@@ -4,7 +4,10 @@ import supabase from "../utils/supabase";
 
 interface SectionSummary {
   fullAnalysis: string;
-  summary: string;
+  summary: {
+    summary: string;
+    score: number;
+  };
 }
 
 export interface JudgingResults {
@@ -70,7 +73,7 @@ class DevspotService {
   ) {
     const { business, final, innovation, technical, ux } = feedback;
 
-    const normalizedScore = this.extractAndNormalizeScore(final.summary);
+    // const normalizedScore = this.extractAndNormalizeScore(final.summary.score);
 
     const { data, error } = await supabase
       .from("judging_entries")
@@ -78,18 +81,22 @@ class DevspotService {
         {
           project_id: projectId,
           challenge_id: challengeId,
-          ux_summary: ux.summary,
+          ux_summary: ux.summary.summary,
           ux_feedback: ux.fullAnalysis,
-          business_summary: business.summary,
+          business_summary: business.summary.summary,
           business_feedback: business.fullAnalysis,
-          innovation_summary: innovation.summary,
+          innovation_summary: innovation.summary.summary,
           innovation_feedback: innovation.fullAnalysis,
-          technical_summary: technical.summary,
+          technical_summary: technical.summary.summary,
           technical_feedback: technical.fullAnalysis,
-          score: normalizedScore,
+          score: final.summary.score,
           judging_status: "needs_review",
-          general_comments_summary: final.summary,
+          general_comments_summary: final.summary.summary,
           general_comments: final.fullAnalysis,
+          business_score: business.summary.score,
+          innovation_score: innovation.summary.score,
+          technical_score: technical.summary.score,
+          ux_score: ux.summary.score,
         },
       ])
       .select();

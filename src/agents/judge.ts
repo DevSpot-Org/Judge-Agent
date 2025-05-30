@@ -6,12 +6,18 @@ import { judgeUX } from "../judges/ux/judge";
 import { geminiFetch } from "../llmProviders/gemini";
 import { groqFetch } from "../llmProviders/groq";
 import type { HackathonChallenges, Project } from "../types/entities";
+import jsonParser from "../utils/jsonParser";
 
 interface InitialJudgeResults {
   ux: string;
   technical: string;
   business: string;
   innovation: string;
+}
+
+interface Summary {
+  summary: string;
+  score: number;
 }
 
 class Judge {
@@ -25,7 +31,6 @@ class Judge {
   }
 
   async projectJudgeAnalysis() {
-    console.log("🤖 Running AI analysis...");
     const analysisResults = await Promise.allSettled([
       this.innovationJudging(),
       this.technicalJudging(),
@@ -137,19 +142,36 @@ class Judge {
   async summarizeResult(review: string) {
     console.log("📊 Generating review summary...");
 
-    const summaryPrompt = `
-      Please provide a 2-3 sentence summary of the following review. 
-      Focus on the key points and main takeaways:
+    const summarysPrompt = `
+      Please analyze the following review and provide:
+      1. A 1-2 sentence summary with 35-50 words (50 words max) focusing on key points and main takeaways
+      2. A quality/performance score out of 10 based on the review content. If the Review Content has a final score, use that. Otherwise, calculate a score based on the review content.
+      
+      Consider factors like:
+      - Project quality and functionality
+      - Technical implementation
+      - Innovation and uniqueness
+      - User experience and design
+      - Overall assessment tone in the review
+      
+      Return ONLY a JSON object with this format:
+      {
+        "summary": "your summary here",
+        "score": 7.5
+      }
 
+      Review to analyze:
       ${review}
     `;
 
     const summary =
       this.provider === "gemini"
-        ? await geminiFetch(summaryPrompt)
-        : await groqFetch(summaryPrompt, "llama-3.3-70b-versatile");
+        ? await geminiFetch(summarysPrompt)
+        : await groqFetch(summarysPrompt, "llama-3.3-70b-versatile");
 
-    return summary;
+    const result = jsonParser(summary) as Summary;
+
+    return result ?? { summary };
   }
 }
 
