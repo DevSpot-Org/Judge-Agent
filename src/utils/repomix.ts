@@ -2,7 +2,6 @@ import { $ } from "bun";
 import path from "path";
 import { TEMPORARY_FOLDER } from "../constants";
 import { excludePatterns } from "../constants/exclude-patterns";
-import type { Project } from "../types/entities";
 import { getRepoName } from "./repos";
 
 /**
@@ -11,9 +10,7 @@ import { getRepoName } from "./repos";
  * @param outputDir - The directory to store the output file. Defaults to the current working directory.
  * @returns The path to the generated XML file.
  */
-const repomixBundler = async (submission: Project) => {
-  const { project_url: repoUrl } = submission;
-
+const repomixBundler = async (repoUrl: string) => {
   const repoName = getRepoName(repoUrl!);
   const repoPath = `${TEMPORARY_FOLDER}/repositories`;
 
@@ -22,7 +19,7 @@ const repomixBundler = async (submission: Project) => {
   const ignoreGlobString = [...excludePatterns].join(",");
 
   try {
-    await $`npx repomix --remote ${repoUrl} --output ${outputPath} --compress --ignore ${ignoreGlobString}`;
+    await $`npx repomix --remote ${repoUrl} --output ${outputPath} --compress --ignore ${ignoreGlobString} --quiet`;
 
     return outputPath;
   } catch (error) {

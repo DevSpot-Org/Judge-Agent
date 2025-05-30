@@ -35,7 +35,7 @@ app.post("/judge/:project_id", async (req: Request, res: Response) => {
   try {
     const judgeBot = new JudgeBot();
 
-    await judgeBot.start(projectId);
+    await judgeBot.judge_project(projectId);
 
     res.status(200).send({
       message: `Judging process started for project ID: ${projectId}`,
@@ -49,6 +49,33 @@ app.post("/judge/:project_id", async (req: Request, res: Response) => {
       error instanceof Error ? error.message : "An unknown error occurred";
 
     res.status(500).send({ error: `Failed to judge project: ${errorMessage}` });
+  }
+
+  return;
+});
+
+app.get("/project/generate", async (req: Request, res: Response) => {
+  const projectUrl = req.query["project_url"] as string;
+
+  if (!projectUrl) {
+    res.status(400).send({ error: "Project URL is required" });
+    return;
+  }
+  try {
+    const judgeBot = new JudgeBot();
+
+    const response = await judgeBot.create_submit_generation_flow(projectUrl);
+
+    res.status(200).send({ data: response });
+
+    return;
+  } catch (error) {
+    console.error(`Error Generating Project Information for ${projectUrl}:`, error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
+
+    res.status(500).send({ error: `Failed to generate project: ${errorMessage}` });
   }
 
   return;

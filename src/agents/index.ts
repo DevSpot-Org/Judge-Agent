@@ -10,13 +10,13 @@ import DevspotService from "./devspot";
 import Judge from "./judge";
 
 class JudgeBot {
-  failedSubmissions: string[];
+  protected failedSubmissions: string[] = [];
 
   constructor() {
     this.failedSubmissions = [];
   }
 
-  async start(project_id: number) {
+  async judge_project(project_id: number) {
     await this.getProjectInfo(project_id)
       .then(this.validateProject)
       .then(this.bundleProject)
@@ -24,6 +24,20 @@ class JudgeBot {
       .then(this.cleanup);
 
     // this.logFailedSubmissions();
+  }
+
+  async create_submit_generation_flow(project_url: string) {
+    try {
+      await repomixBundler(project_url ?? "");
+
+      const response = await generateProjectInfo(project_url);
+
+      return response;
+    } catch (error) {
+      console.error(`Error generating project Information: ${error}`);
+
+      throw error;
+    }
   }
 
   private async getProjectInfo(project_id: number) {
@@ -50,7 +64,8 @@ class JudgeBot {
       return project;
     } catch (error) {
       console.error(`Error validating project information: ${error}`);
-      this.failedSubmissions.push(project.name);
+      console.log(this.failedSubmissions);
+      this.failedSubmissions?.push(project.name);
 
       throw error;
     }
@@ -58,7 +73,7 @@ class JudgeBot {
 
   private async bundleProject(project: Project) {
     try {
-      await repomixBundler(project);
+      await repomixBundler(project.project_url ?? "");
 
       return project;
     } catch (error) {
@@ -109,18 +124,6 @@ class JudgeBot {
       console.log(`Total failed: ${this.failedSubmissions.length}`);
     } else {
       console.log("\n\nAll submissions were analyzed successfully!");
-    }
-  }
-
-  private async generateProjectChallenges(project: Project) {
-    try {
-      await generateProjectInfo(project);
-
-      return project;
-    } catch (error) {
-      console.error(`Error generating project challenges: ${error}`);
-
-      throw error;
     }
   }
 

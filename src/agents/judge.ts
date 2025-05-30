@@ -138,7 +138,7 @@ class Judge {
     console.log("📊 Generating review summary...");
 
     const summaryPrompt = `
-      Please provide a 3-4 sentence summary of the following review. 
+      Please provide a 2-3 sentence summary of the following review. 
       Focus on the key points and main takeaways:
 
       ${review}
