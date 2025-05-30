@@ -1,3 +1,4 @@
+import axios from "axios";
 import cors from "cors";
 import type { Request, Response } from "express";
 import express from "express";
@@ -70,12 +71,17 @@ app.get("/project/generate", async (req: Request, res: Response) => {
 
     return;
   } catch (error) {
-    console.error(`Error Generating Project Information for ${projectUrl}:`, error);
+    console.error(
+      `Error Generating Project Information for ${projectUrl}:`,
+      error
+    );
 
     const errorMessage =
       error instanceof Error ? error.message : "An unknown error occurred";
 
-    res.status(500).send({ error: `Failed to generate project: ${errorMessage}` });
+    res
+      .status(500)
+      .send({ error: `Failed to generate project: ${errorMessage}` });
   }
 
   return;
@@ -83,6 +89,20 @@ app.get("/project/generate", async (req: Request, res: Response) => {
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
+});
+
+app.listen(port, async () => {
+  console.log(`Server running on port ${port}`);
+
+  // Schedule periodic self-calls every 30 minutes to avoid render server shutting down
+  setInterval(async () => {
+    try {
+      console.log("Calling /self endpoint...");
+      await axios.get(`${process.env["ORIGIN_URL"]}/self`);
+    } catch (error: any) {
+      console.error("Self call failed:", error.message);
+    }
+  }, 14 * 60 * 1000); // 30 minutes in milliseconds
 });
 
 export default app;
