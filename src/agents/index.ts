@@ -32,6 +32,20 @@ class JudgeBot {
 
       const response = await generateProjectInfo(project_url);
 
+      const repoName = getRepoName(project_url);
+      const repoPath = `${TEMPORARY_FOLDER}/repositories`;
+
+      const outputFileName = `${repoName}-pack.xml`;
+      const outputPath = path.join(repoPath, outputFileName);
+
+      try {
+        if (fs.existsSync(outputPath)) {
+          fs.rmSync(outputPath, { recursive: true, force: true });
+        }
+      } catch (error) {
+        console.error(`Error cleaning up repository files: ${error}`);
+      }
+
       return response;
     } catch (error) {
       console.error(`Error generating project Information: ${error}`);
