@@ -23,7 +23,7 @@ interface Summary {
 class Judge {
   project: Project;
   challenge: HackathonChallenges;
-  provider: "groq" | "gemini" = "gemini";
+  provider: "groq" | "gemini" = "groq";
 
   constructor(project: Project, challenge: HackathonChallenges) {
     this.challenge = challenge;
