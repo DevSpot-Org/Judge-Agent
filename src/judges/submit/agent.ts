@@ -11,6 +11,11 @@ import { checkPromptSize } from "../../utils/prompt-size";
 import { getRepoName } from "../../utils/repos";
 import { challengeMatchingPrompt } from "./prompt";
 
+// Cache for challenges and processed repos
+const challengeCache = new Map<number, any>();
+const repoAnalysisCache = new Map<string, any>();
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
 const structuredAnalysisPrompt = `
   Analyze the project information provided above against the available challenges. Generate comprehensive challenge recommendations using the framework outlined in the prompt.
   
@@ -133,13 +138,20 @@ export const generateProjectInfo = async (
   provider: LLMProvider = "groq"
 ) => {
   const repoName = getRepoName(project_url!);
+  const cacheKey = `${repoName}`;
+
+  // Check if we have a cached analysis
+  const cached = repoAnalysisCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log(`Using cached analysis for ${repoName}`);
+    return cached.data;
+  }
+
   const repoPath = `${TEMPORARY_FOLDER}/repositories/${repoName}-pack.xml`;
 
   const generatedFilePrompt = fs.readFileSync(path.join(repoPath), "utf8");
 
-  const devspotService = new DevspotService();
-
-  const challenges = await devspotService.getHackathonChallenges(1);
+  const challenges = await getCachedChallenges(1);
 
   const prompt = `
         <project_code>
@@ -166,5 +178,29 @@ export const generateProjectInfo = async (
 
   const result = jsonParser(analysis);
 
+  // Cache the result
+  repoAnalysisCache.set(cacheKey, {
+    data: result,
+    timestamp: Date.now(),
+  });
+
   return result;
 };
+
+async function getCachedChallenges(hackathonId: number): Promise<any> {
+  const cached = challengeCache.get(hackathonId);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+
+  const devspotService = new DevspotService();
+  const challenges = await devspotService.getHackathonChallenges(hackathonId);
+
+  challengeCache.set(hackathonId, {
+    data: challenges,
+    timestamp: Date.now(),
+  });
+
+  return challenges;
+}
