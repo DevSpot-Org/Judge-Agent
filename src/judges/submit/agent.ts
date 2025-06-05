@@ -175,7 +175,6 @@ export const generateProjectInfo = async (
 
   const analysis =
     provider === "gemini" ? await geminiFetch(prompt) : await groqFetch(prompt);
-console.log(analysis);
   const result = jsonParser(analysis);
 
   // Cache the result

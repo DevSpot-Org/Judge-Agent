@@ -4,13 +4,15 @@ import express from "express";
 import JudgeBot from "./agents";
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 app.use(express.json());
 
-app.use(cors({
-  origin: "*",
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
 app.use(express.static("public"));
 
@@ -58,15 +60,25 @@ app.post("/judge/:project_id", async (req: Request, res: Response) => {
 
 app.get("/project/generate", async (req: Request, res: Response) => {
   const projectUrl = req.query["project_url"] as string;
+  const creatorId = req.query["user_id"] as string;
 
   if (!projectUrl) {
     res.status(400).send({ error: "Project URL is required" });
     return;
   }
+
+  if (!creatorId) {
+    res.status(400).send({ error: "User ID is required" });
+    return;
+  }
+
   try {
     const judgeBot = new JudgeBot();
 
-    const response = await judgeBot.create_submit_generation_flow(projectUrl);
+    const response = await judgeBot.create_submit_generation_flow(
+      projectUrl,
+      creatorId
+    );
 
     res.status(200).send({ data: response });
 
