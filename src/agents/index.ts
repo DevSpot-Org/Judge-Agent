@@ -26,31 +26,56 @@ class JudgeBot {
     // this.logFailedSubmissions();
   }
 
-  async create_submit_generation_flow(project_url: string) {
+  async create_submit_generation_flow(project_url: string, creator_id: string) {
+    const devspot = new DevspotService();
+    const hackathon = await devspot.fetchHackathon(1);
+
     try {
+      // Bundle the project repository
       await repomixBundler(project_url ?? "");
 
-      const response = await generateProjectInfo(project_url);
-
-      const repoName = getRepoName(project_url);
-      const repoPath = `${TEMPORARY_FOLDER}/repositories`;
-
-      const outputFileName = `${repoName}-pack.xml`;
-      const outputPath = path.join(repoPath, outputFileName);
-
+      // Generate project information
+      let projectInfo;
       try {
-        if (fs.existsSync(outputPath)) {
-          fs.rmSync(outputPath, { recursive: true, force: true });
-        }
+        projectInfo = await generateProjectInfo(project_url);
       } catch (error) {
-        console.error(`Error cleaning up repository files: ${error}`);
+        const message = "Codebase is too large, Please Create Manually";
+        if (hackathon) {
+          await devspot.sendNotification(
+            "project-creation-error",
+            creator_id,
+            hackathon,
+            message
+          );
+        }
+        throw new Error(message);
       }
 
-      return response;
-    } catch (error) {
-      console.error(`Error generating project Information: ${error}`);
+      await this.cleanupOutputFile(project_url);
 
+      return await devspot.createAIProject(
+        projectInfo,
+        project_url,
+        creator_id,
+        hackathon!
+      );
+    } catch (error) {
+      console.error(`Error generating project Information:`, error);
       throw error;
+    }
+  }
+
+  private async cleanupOutputFile(project_url: string) {
+    const repoName = getRepoName(project_url);
+    const repoPath = `${TEMPORARY_FOLDER}/repositories`;
+    const outputPath = path.join(repoPath, `${repoName}-pack.xml`);
+
+    try {
+      if (fs.existsSync(outputPath)) {
+        fs.rmSync(outputPath, { recursive: true, force: true });
+      }
+    } catch (error) {
+      console.error(`Error cleaning up repository files:`, error);
     }
   }
 

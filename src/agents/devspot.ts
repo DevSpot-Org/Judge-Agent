@@ -1,3 +1,4 @@
+import { Novu } from "@novu/api";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { HackathonChallenges, Project } from "../types/entities";
 import supabase from "../utils/supabase";
@@ -16,6 +17,19 @@ export interface JudgingResults {
   ux: SectionSummary;
   business: SectionSummary;
   final: SectionSummary;
+}
+
+interface ProjectAnalysisResult {
+  challengeIds: number[];
+  technologies: string[];
+  description: string;
+  title: string;
+  tagline: string;
+}
+
+interface Hackathon {
+  name: string;
+  id: number;
 }
 
 class DevspotService {
@@ -60,12 +74,6 @@ class DevspotService {
     return data as HackathonChallenges[];
   }
 
-  private extractAndNormalizeScore(text: string): number {
-    const regex = /final score[\s:–—]*([\d]+(?:\.\d+)?)(?=\s*\/\s*100)/i;
-    const match = text.match(regex);
-    return match ? parseFloat(match[1]) : 0;
-  }
-
   async updateProjectJudgeReport(
     projectId: number,
     challengeId: number,
@@ -107,6 +115,136 @@ class DevspotService {
     }
 
     return data;
+  }
+
+  async fetchHackathon(hackathon_id: number) {
+    const { data: hackathon } = await supabase
+      .from("hackathons")
+      .select("id, name")
+      .eq("id", hackathon_id)
+      .single();
+
+    return hackathon;
+  }
+
+  private getHackathonProfileUrl(hackathonId: number): string {
+    return `${process.env["NEXT_PUBLIC_PROTOCOL"]}${process.env["NEXT_PUBLIC_BASE_SITE_URL"]}/en/hackathons/${hackathonId}`;
+  }
+
+   async sendNotification(
+    workflowId: string,
+    creator_id: string,
+    hackathon: Hackathon,
+    message?: string,
+    transactionId?: string
+  ) {
+    const novu = new Novu({ secretKey: process.env["NOVU_API_KEY"] });
+    
+    await novu.trigger({
+      workflowId,
+      transactionId,
+      to: { subscriberId: creator_id },
+      payload: {
+        message,
+        project_id: transactionId,
+        hackathon_name: hackathon?.name,
+        hackathon_profile: this.getHackathonProfileUrl(hackathon?.id),
+      },
+    });
+  }
+
+  async createAIProject(
+    payload: ProjectAnalysisResult,
+    projectUrl: string,
+    creator_id: string,
+    hackathon: Hackathon
+  ) {
+    const HACKATHON_ID = 1;
+    const { technologies, description, title, tagline, challengeIds } = payload;
+
+    try {
+      if (challengeIds.length < 1) {
+        await this.sendNotification(
+          "project-creation-error",
+          creator_id,
+          hackathon,
+          "Project - Doesn't Match any existing Challenges"
+        );
+        throw new Error("Project - Doesn't Match any existing Challenges");
+      }
+
+      const { data: project, error: projectError } = await this.supabase
+        .from("projects")
+        .insert({
+          project_url: projectUrl,
+          hackathon_id: HACKATHON_ID,
+          submitted: false,
+          name: title ?? "Untitled Project",
+          description,
+          tagline,
+          technologies,
+        })
+        .select()
+        .single();
+
+      if (projectError) {
+        throw new Error(`Failed to Create project: ${projectError.message}`);
+      }
+
+      await this.createProjectChallenges(project.id, challengeIds);
+      await this.createProjectTeamMember(project.id, creator_id);
+      
+      await this.sendNotification(
+        "project-creation-success",
+        creator_id,
+        hackathon,
+        undefined,
+        project.id.toString()
+      );
+
+      return project;
+    } catch (error: any) {
+      await this.sendNotification(
+        "project-creation-error",
+        creator_id,
+        hackathon,
+        error?.message
+      );
+      throw error;
+    }
+  }
+
+  private async createProjectChallenges(projectId: number, challengeIds: number[]) {
+    const challengeInserts = challengeIds.map(challengeId => ({
+      project_id: projectId,
+      challenge_id: challengeId,
+    }));
+
+    const { error: challengeError } = await this.supabase
+      .from("project_challenges")
+      .insert(challengeInserts);
+
+    if (challengeError) {
+      throw new Error(`Failed to link challenges: ${challengeError.message}`);
+    }
+  }
+
+  private async createProjectTeamMember(projectId: number, userId: string) {
+    const { error: teamMemberError } = await this.supabase
+      .from("project_team_members")
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        is_project_manager: true,
+        status: "confirmed",
+        prize_allocation: 100,
+      })
+      .select()
+      .single();
+
+    if (teamMemberError) {
+      throw new Error(`Failed to Add Team member: ${teamMemberError.message}`);
+    }
   }
 }
 
