@@ -1,6 +1,6 @@
 export const groqFetch = async (
   userPrompt: string,
-  model: string = "deepseek-r1-distill-llama-70b"
+  model: string = "llama-3.3-70b-versatile"
 ) => {
   try {
     const apiKey = process.env["GROQ_API_KEY"];
