@@ -2,7 +2,7 @@ import path from 'path';
 import { EmptyFileError, FileNotFoundError, InvalidJsonError, isProjectTemplateError, isTemplateValidationError, ProjectTemplateError, TemplateValidationError } from '../../core/errors';
 import type { Project } from '../../types/entities';
 
-interface ProjectTeamTemplate {
+export interface ProjectTeamTemplate {
     name: string;
     email: string;
 }

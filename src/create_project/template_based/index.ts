@@ -38,6 +38,7 @@ const create_template_based_project = async (options: CreateTemplateProjectOptio
         hackathon: { id: hackathon?.id!, name: hackathon?.name! },
         payload: parsedProjectTemplate,
         use_project_template: true,
+        team: projectTemplate?.team ?? [],
     });
 
     try {
