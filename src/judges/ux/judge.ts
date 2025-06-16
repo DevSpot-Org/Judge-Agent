@@ -38,7 +38,7 @@ export const judgeUX = async (submission: Project, challenge: HackathonChallenge
 
     checkPromptSize(prompt);
 
-    const analysis = await requestLLM(provider, prompt, 'deepseek-r1-distill-llama-70b');
+    const analysis = await requestLLM(provider, prompt);
 
     return analysis;
 };

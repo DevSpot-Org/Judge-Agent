@@ -40,7 +40,7 @@ export const judgeTechnicalImplementation = async (submission: Project, challeng
     checkPromptSize(prompt);
 
     //  const analysis = await aiQueue.makeRequest(provider, prompt);
-    const analysis = await requestLLM(provider, prompt, 'deepseek-r1-distill-llama-70b');
+    const analysis = await requestLLM(provider, prompt);
 
     return analysis;
 };
