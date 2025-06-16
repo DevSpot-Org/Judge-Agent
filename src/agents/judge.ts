@@ -25,7 +25,7 @@ interface Summary {
 class Judge {
     project: Project;
     challenge: HackathonChallenges;
-    provider: LLMProvider = 'openai';
+    provider: LLMProvider = 'groq';
 
     constructor(project: Project, challenge: HackathonChallenges) {
         this.challenge = challenge;
