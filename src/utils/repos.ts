@@ -18,6 +18,7 @@ export const repositoryExists = async (repoUrl: string) => {
 
 export const repoContainsCode = async (repoUrl: string) => {
     const { stdout } = await $`git ls-remote --heads ${repoUrl}`.nothrow().quiet();
+    
     // checks the latest refs of a repo. Empty repos will have no stdout
     return stdout.length > 0;
 };

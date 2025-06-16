@@ -1,26 +1,19 @@
-import type { LLMProvider } from "../../llmProviders";
-import { geminiFetch } from "../../llmProviders/gemini";
-import { groqFetch } from "../../llmProviders/groq";
-import type { Project } from "../../types/entities";
-import { finalJudgeMetaPrompt } from "./prompt";
+import { type LLMProvider } from '../../llmProviders';
+import { requestLLM } from '../../llmProviders/service';
+import type { Project } from '../../types/entities';
+import { finalJudgeMetaPrompt } from './prompt';
 
 interface JudgeFinalReviewParams {
-  submission: Project;
-  technical: string;
-  innovation: string;
-  ux: string;
-  business: string;
-  provider?: LLMProvider;
+    submission: Project;
+    technical: string;
+    innovation: string;
+    ux: string;
+    business: string;
+    provider?: LLMProvider;
 }
 
-export const judgeFinalReview = async ({
-  technical,
-  innovation,
-  ux,
-  business,
-  provider = "groq",
-}: JudgeFinalReviewParams) => {
-  const prompt = `
+export const judgeFinalReview = async ({ technical, innovation, ux, business, provider = 'groq' }: JudgeFinalReviewParams) => {
+    const prompt = `
       <technical_analysis>
       ${technical}
       </technical_analysis>
@@ -65,8 +58,7 @@ export const judgeFinalReview = async ({
       </user_instructions>
     `;
 
-  const analysis =
-    provider === "gemini" ? await geminiFetch(prompt) : await groqFetch(prompt);
+    const analysis = await requestLLM(provider, prompt);
 
-  return analysis;
+    return analysis;
 };

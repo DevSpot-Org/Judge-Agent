@@ -1,6 +1,6 @@
 import { Novu } from '@novu/api';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { HackathonChallenges, Project } from '../types/entities';
+import type { Hackathon, HackathonChallenges, Project } from '../types/entities';
 import supabase from '../utils/supabase';
 
 interface SectionSummary {
@@ -17,19 +17,6 @@ export interface JudgingResults {
     ux: SectionSummary;
     business: SectionSummary;
     final: SectionSummary;
-}
-
-interface ProjectAnalysisResult {
-    challengeIds: number[];
-    technologies: string[];
-    description: string;
-    title: string;
-    tagline: string;
-}
-
-interface Hackathon {
-    name: string;
-    id: number;
 }
 
 class DevspotService {
@@ -64,33 +51,29 @@ class DevspotService {
     async updateProjectJudgeReport(projectId: number, challengeId: number, feedback: JudgingResults) {
         const { business, final, innovation, technical, ux } = feedback;
 
-        // const normalizedScore = this.extractAndNormalizeScore(final.summary.score);
-
         const { data, error } = await supabase
-            .from('judging_entries')
-            .insert([
-                {
-                    project_id: projectId,
-                    challenge_id: challengeId,
-                    ux_summary: ux.summary.summary,
-                    ux_feedback: ux.fullAnalysis,
-                    business_summary: business.summary.summary,
-                    business_feedback: business.fullAnalysis,
-                    innovation_summary: innovation.summary.summary,
-                    innovation_feedback: innovation.fullAnalysis,
-                    technical_summary: technical.summary.summary,
-                    technical_feedback: technical.fullAnalysis,
-                    score: final.summary.score,
-                    judging_status: 'needs_review',
-                    general_comments_summary: final.summary.summary,
-                    general_comments: final.fullAnalysis,
-                    business_score: business.summary.score,
-                    innovation_score: innovation.summary.score,
-                    technical_score: technical.summary.score,
-                    ux_score: ux.summary.score,
-                },
-            ])
-            .select();
+            .from('judging_bot_scores')
+            .insert({
+                project_id: projectId,
+                challenge_id: challengeId,
+                ux_summary: ux.summary.summary,
+                ux_feedback: ux.fullAnalysis,
+                business_summary: business.summary.summary,
+                business_feedback: business.fullAnalysis,
+                innovation_summary: innovation.summary.summary,
+                innovation_feedback: innovation.fullAnalysis,
+                technical_summary: technical.summary.summary,
+                technical_feedback: technical.fullAnalysis,
+                score: final.summary.score,
+                general_comments_summary: final.summary.summary,
+                general_comments: final.fullAnalysis,
+                business_score: business.summary.score,
+                innovation_score: innovation.summary.score,
+                technical_score: technical.summary.score,
+                ux_score: ux.summary.score,
+            })
+            .select('*')
+            .maybeSingle();
 
         if (error) {
             console.error('Error inserting judging feedback:', error);
@@ -103,7 +86,7 @@ class DevspotService {
 
 export default DevspotService;
 
-const sendNotification = async (workflowId: string, creator_id: string, hackathon: Hackathon, message?: string, transactionId?: string) => {
+const sendNotification = async (workflowId: string, creator_id: string, hackathon: Pick<Hackathon, 'id' | 'name'>, message?: string, transactionId?: string) => {
     const novu = new Novu({ secretKey: process.env['NOVU_API_KEY'] });
 
     const hackathonProfileUrl = `${process.env['NEXT_PUBLIC_PROTOCOL']}${process.env['NEXT_PUBLIC_BASE_SITE_URL']}/en/hackathons/${hackathon?.id}`;

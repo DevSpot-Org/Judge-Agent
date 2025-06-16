@@ -1,11 +1,13 @@
+import { Worker, type Job } from 'bullmq';
 import cors from 'cors';
 import type { Request, Response } from 'express';
 import express from 'express';
 import { createServer } from 'http';
 import JudgeBot from './agents';
+import { cacheCreds } from './core/cache';
 import { SocketService } from './core/socketio';
 import create_project from './create_project';
-import { pullSingleFileWithGit } from './utils/codeRetrieval';
+import { processLLMJob } from './llmProviders/worker';
 
 const PORT = process.env['PORT'] || 3002;
 const app = express();
@@ -40,49 +42,17 @@ app.post('/judge/:project_id', async (req: Request, res: Response) => {
     try {
         const judgeBot = new JudgeBot();
 
-        await judgeBot.judge_project(projectId);
+        const response = await judgeBot.judge_project(projectId);
+        
 
         res.status(200).send({
             message: `Judging process started for project ID: ${projectId}`,
+            data: response,
         });
 
         return;
     } catch (error) {
         console.error(`Error judging project ID ${projectId}:`, error);
-
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-
-        res.status(500).send({ error: `Failed to judge project: ${errorMessage}` });
-    }
-
-    return;
-});
-
-app.post('/test', async (req: Request, res: Response) => {
-    const projectUrlString = req.query['project_url'] as string;
-    console.log(projectUrlString);
-
-    if (!projectUrlString) {
-        res.status(400).send({ error: 'Project ID is required' });
-        return;
-    }
-
-    try {
-        pullSingleFileWithGit(projectUrlString);
-
-        // const resss = await repomix.getAllRepoFiles(projectUrlString, {
-        //     include: ['project.json'],
-        // });
-
-        // console.log(resss);
-
-        res.status(200).send({
-            message: `Judging process started for `,
-        });
-
-        return;
-    } catch (error) {
-        console.error(`Error judging project ID:`, error);
 
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
 
@@ -130,6 +100,19 @@ app.post('/project/generate', async (req: Request, res: Response) => {
 //     connection: cacheCreds,
 //     concurrency: 2,
 // });
+
+['groq', 'gemini', 'openai'].forEach(provider => {
+    new Worker(
+        `${provider}-queue`,
+        async (job: Job) => {
+            return await processLLMJob(job);
+        },
+        {
+            connection: cacheCreds,
+            concurrency: 2,
+        }
+    );
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

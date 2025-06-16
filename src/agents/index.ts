@@ -1,3 +1,4 @@
+import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { TEMPORARY_FOLDER } from '../constants';
@@ -8,31 +9,16 @@ import { getRepoName } from '../utils/repos';
 import DevspotService from './devspot';
 import Judge from './judge';
 
-class JudgeBot {
-    protected failedSubmissions: string[] = [];
+const failedSubmissions: string[] = [];
 
-    constructor() {
-        this.failedSubmissions = [];
-    }
+class JudgeBot {
+    constructor() {}
 
     async judge_project(project_id: number) {
-        await this.getProjectInfo(project_id).then(this.validateProject).then(this.bundleProject).then(this.judgeProject).then(this.cleanup);
-
-        // this.logFailedSubmissions();
-    }
-
-    private async cleanupOutputFile(project_url: string) {
-        const repoName = getRepoName(project_url);
-        const repoPath = `${TEMPORARY_FOLDER}/repositories`;
-        const outputPath = path.join(repoPath, `${repoName}-pack.xml`);
-
-        try {
-            if (fs.existsSync(outputPath)) {
-                fs.rmSync(outputPath, { recursive: true, force: true });
-            }
-        } catch (error) {
-            console.error(`Error cleaning up repository files:`, error);
-        }
+        const project = await this.getProjectInfo(project_id);
+        await this.validateProject(project);
+        await this.bundleProject(project);
+        return await this.judgeProject(project);
     }
 
     private async getProjectInfo(project_id: number) {
@@ -59,8 +45,7 @@ class JudgeBot {
             return project;
         } catch (error) {
             console.error(`Error validating project information: ${error}`);
-            console.log(this.failedSubmissions);
-            this.failedSubmissions?.push(project.name);
+            failedSubmissions?.push(project.name);
 
             throw error;
         }
@@ -73,13 +58,16 @@ class JudgeBot {
             return project;
         } catch (error) {
             console.error(`Error bundling project codebase: ${error}`);
-            this.failedSubmissions.push(project.name);
+            failedSubmissions.push(project.name);
 
             throw error;
         }
     }
 
     private async judgeProject(project: Project) {
+        const ids = [];
+        const allReviews = [];
+
         for (const challenge of project.project_challenges ?? []) {
             const hackathonChallenge = challenge.hackathon_challenges!;
 
@@ -90,24 +78,35 @@ class JudgeBot {
 
                 const devSpotService = new DevspotService();
 
-                await devSpotService.updateProjectJudgeReport(project.id, hackathonChallenge.id, response);
+                const data = await devSpotService.updateProjectJudgeReport(project.id, hackathonChallenge.id, response);
+                ids.push(data?.id);
+                allReviews.push(data);
 
                 console.log('Report generated successfully!');
             } catch (error) {
-                // this.failedSubmissions.push(project.name);
-
+                failedSubmissions.push(project.name);
                 console.error(`Failed to process report for ${project.name} ${hackathonChallenge.challenge_name}:`, error);
             }
         }
 
-        return project;
+        const mainServerUrl = `${process.env['NEXT_PUBLIC_PROTOCOL']}${process.env['NEXT_PUBLIC_BASE_SITE_URL']}`;
+        await axios.post(`${mainServerUrl}/api/judgings/assign`, {
+            botScoreIds: ids,
+        });
+
+        this.cleanup(project);
+
+        return {
+            project,
+            allReviews,
+        };
     }
 
     private logFailedSubmissions() {
-        if (this.failedSubmissions.length > 0) {
+        if (failedSubmissions.length > 0) {
             console.log('\n\nFailed to analyze the following submissions:');
-            this.failedSubmissions.forEach(name => console.log(`- ${name}`));
-            console.log(`Total failed: ${this.failedSubmissions.length}`);
+            failedSubmissions.forEach(name => console.log(`- ${name}`));
+            console.log(`Total failed: ${failedSubmissions.length}`);
         } else {
             console.log('\n\nAll submissions were analyzed successfully!');
         }

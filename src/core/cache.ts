@@ -40,9 +40,11 @@ export class AppCacheManager extends Redis {
         }
     };
 }
+
 export const cacheCreds: RedisOptions = {
-    host: 'localhost',
+    host: process.env['REDIS_HOST'] ?? 'localhost',
     port: 6379,
 };
 
 export const cache = new AppCacheManager(cacheCreds);
+

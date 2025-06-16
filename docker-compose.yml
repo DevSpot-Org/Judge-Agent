@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./src
+        target: /usr/src/app/src
+      - type: bind
+        source: ./package.json
+        target: /usr/src/app/package.json
+      - type: bind
+        source: ./temp
+        target: /usr/src/app/temp  # Persistent temp directory
+      - type: volume
+        target: /usr/src/app/node_modules
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  redis-data:
+
+networks:
+  app-network:
+    driver: bridge

@@ -2,7 +2,7 @@ import { geminiFetch } from './gemini';
 import { groqFetch } from './groq';
 import { openaiFetch } from './openai';
 
-export type LLMProvider = 'groq' | 'gemini';
+export type LLMProvider = 'groq' | 'gemini' | 'openai';
 
 export const selectLLMFetcher = (provider: LLMProvider) => {
     const fetchers = {
