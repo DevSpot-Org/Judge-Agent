@@ -43,7 +43,6 @@ app.post('/judge/:project_id', async (req: Request, res: Response) => {
         const judgeBot = new JudgeBot();
 
         const response = await judgeBot.judge_project(projectId);
-        
 
         res.status(200).send({
             message: `Judging process started for project ID: ${projectId}`,
@@ -116,15 +115,6 @@ app.post('/project/generate', async (req: Request, res: Response) => {
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-
-    setInterval(async () => {
-        try {
-            console.log('Calling /self endpoint...');
-            fetch(`${process.env['ORIGIN_URL']}/self`);
-        } catch (error: any) {
-            console.error('Self call failed:', error.message);
-        }
-    }, 14 * 60 * 1000);
 });
 
 export default app;
