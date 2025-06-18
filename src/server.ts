@@ -55,6 +55,24 @@ app.post('/judge/:project_id', async (req: Request, res: Response) => {
 
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
 
+        console.error(`Error judging project ID ${projectId}:`, error);
+
+        // Push to fallback CSV
+        const fallbackRow = {
+            timestamp: new Date().toISOString(),
+            projectId: projectIdString,
+            error: errorMessage,
+        };
+        const fallbackSheetUrl = process.env['FALLBACK_CSV_ENDPOINT'] as string;
+
+        await fetch(fallbackSheetUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify([Object.values(fallbackRow)]),
+        });
+
         res.status(500).send({ error: `Failed to judge project: ${errorMessage}` });
     }
 
