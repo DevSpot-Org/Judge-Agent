@@ -1,13 +1,6 @@
 import { Job, Queue } from 'bullmq';
 import JudgeBot from '../agents';
-import { socketService } from '../server';
-import { cache, cacheCreds } from './cache';
-
-export interface ProjectAnalysisJobData {
-    projectUrl: string;
-    creatorId: string;
-    requestId: string;
-}
+import { cacheCreds } from './cache';
 
 export const projectAnalysisQueue = new Queue('project-analysis', {
     connection: cacheCreds,
@@ -22,40 +15,39 @@ export const projectAnalysisQueue = new Queue('project-analysis', {
     },
 });
 
-export const processProjectAnalysis = async (job: Job<ProjectAnalysisJobData>) => {
-    const { projectUrl, creatorId, requestId } = job.data;
+export const judgeProjectAsync = async (job: Job<{ projectId: number }>) => {
+    const { projectId } = job.data;
 
     try {
         job.updateProgress(10);
         const judgeBot = new JudgeBot();
 
-        // const result = await judgeBot.create_submit_generation_flow(projectUrl, creatorId);
-        const currentCount = await cache.get(creatorId);
-
-        if (currentCount) {
-            const count = parseInt(currentCount);
-
-            if (count > 1) {
-                await cache.set(creatorId, count - 1);
-            } else {
-                await cache.del(creatorId);
-            }
-        }
-
-        const isFinal = currentCount ? parseInt(currentCount) <= 1 : false;
-
-        console.log('Done');
-
-        // socketService.emitCreatedProject(result, creatorId, isFinal);
+        const response = await judgeBot.judge_project(projectId);
 
         job.updateProgress(100);
 
         return {
             success: true,
-            data: {},
-            requestId,
+            data: response,
         };
     } catch (error: any) {
-        throw new Error(`Analysis failed: ${error.message}`);
+        const fallbackSheetUrl = process.env['FALLBACK_CSV_ENDPOINT'] as string;
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+
+        const fallbackRow = {
+            timestamp: new Date().toISOString(),
+            projectId: projectId,
+            error: errorMessage,
+        };
+
+        await fetch(fallbackSheetUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify([Object.values(fallbackRow)]),
+        });
+
+        throw new Error(`Judging failed: ${error.message}`);
     }
 };
