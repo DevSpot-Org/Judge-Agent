@@ -36,7 +36,7 @@ export const groqFetch = async (userPrompt: string, model: string = 'deepseek-r1
 
         if (!response.ok) {
             const test = await response.json();
-            console.log(test);
+            console.log({test})
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 

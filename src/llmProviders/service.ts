@@ -1,6 +1,7 @@
 import { Queue, QueueEvents } from 'bullmq';
 import { cacheCreds } from '../core/cache';
 import { type LLMProvider } from './index';
+import { createEnhancedLLMRequester } from './test';
 
 const queueEventsMap: Record<LLMProvider, QueueEvents> = {
     groq: new QueueEvents('groq-queue', { connection: cacheCreds }),
@@ -28,20 +29,33 @@ export const llmQueues = {
 };
 
 export const requestLLM = async (provider: LLMProvider, prompt: string, model?: string): Promise<string> => {
-    const queue = llmQueues[provider];
-    const queueEvents = queueEventsMap[provider];
+    // const queue = llmQueues[provider];
+    // const queueEvents = queueEventsMap[provider];
 
-    const job = await queue.add(
-        'llm-task',
-        { provider, prompt, model },
-        {
-            attempts: 1,
-            removeOnComplete: true,
-            removeOnFail: true,
-        }
-    );
+    // const job = await queue.add(
+    //     'llm-task',
+    //     { provider, prompt, model },
+    //     {
+    //         attempts: 1,
+    //         removeOnComplete: true,
+    //         removeOnFail: true,
+    //     }
+    // );
 
-    const result = await job.waitUntilFinished(queueEvents);
-    console.log({ result });
+    // const result = await job.waitUntilFinished(queueEvents);
+
+    const enhancedRequester = createEnhancedLLMRequester(llmQueues, queueEventsMap);
+
+    const result = await enhancedRequester.requestLLMWithChunking({
+        provider,
+        prompt,
+        model,
+        chunkingOptions: {
+            maxTokens: 25000,
+            useStructuredChunking: true,
+            chunkMergeStrategy: 'concatenate',
+        },
+    });
+
     return result;
 };

@@ -42,34 +42,62 @@ class Judge {
             return result;
         }
 
-        const analysisResults = await Promise.allSettled([this.innovationJudging(), this.technicalJudging(), this.uxJudging(), this.businessJudging()]);
+        const MAX_RETRIES = 3;
+        const judgingFunctions = {
+            innovation: this.innovationJudging.bind(this),
+            technical: this.technicalJudging.bind(this),
+            ux: this.uxJudging.bind(this),
+            business: this.businessJudging.bind(this)
+        };
 
-        const [innovation, technical, ux, business] = analysisResults.map(result => {
-            if (result.status === 'rejected') {
-                console.error('❌ Analysis failed:', result.reason);
-                throw Error(result.reason?.message || 'Analysis failed');
+        const results: Record<string, any> = {};
+
+        // Try each judging function with retries
+        for (const [key, func] of Object.entries(judgingFunctions)) {
+            let attempts = 0;
+            let success = false;
+
+            console.log(`Judging Section - ${key} of project ${this.project.name}`)
+
+            while (attempts < MAX_RETRIES && !success) {
+                try {
+                    results[key] = await func();
+                    success = true;
+                } catch (error:any) {
+                    attempts++;
+                    console.error(`❌ ${key} analysis failed (attempt ${attempts}/${MAX_RETRIES}):`, error);
+                    
+                    if (attempts === MAX_RETRIES) {
+                        throw new Error(`${key} analysis failed after ${MAX_RETRIES} attempts: ${error.message}`);
+                    }
+                    // Wait briefly before retrying
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
             }
-            return result.value;
-        });
+        }
+
+        const technicalReview = results['technical'];
+        const uxReview = results['ux'];
+        const businessReview = results['business'];
+        const innovationReview = results['innovation'];
 
         const finalReview = await this.finalJudging({
-            technical: technical.fullAnalysis,
-            ux: ux.fullAnalysis,
-            business: business.fullAnalysis,
-            innovation: innovation.fullAnalysis,
+            technical: technicalReview.fullAnalysis,
+            ux: uxReview.fullAnalysis,
+            business: businessReview.fullAnalysis,
+            innovation: innovationReview.fullAnalysis,
         });
 
-        cache.set(cacheKey, JSON.stringify({ technical, ux, business, innovation, final: finalReview }));
+        cache.set(cacheKey, JSON.stringify({ ...results, final: finalReview }));
 
         return {
-            technical,
-            ux,
-            business,
-            innovation,
+            technical: technicalReview,
+            ux: uxReview,
+            business: businessReview,
+            innovation: innovationReview,
             final: finalReview,
         };
     }
-
     async technicalJudging() {
         const project = this.project;
         const challenge = this.challenge;

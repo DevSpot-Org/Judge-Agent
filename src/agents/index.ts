@@ -90,9 +90,11 @@ class JudgeBot {
         }
 
         const mainServerUrl = `${process.env['NEXT_PUBLIC_PROTOCOL']}${process.env['NEXT_PUBLIC_BASE_SITE_URL']}`;
-        await axios.post(`${mainServerUrl}/api/judgings/assign`, {
-            botScoreIds: ids,
-        });
+        if (ids.length) {
+            await axios.post(`${mainServerUrl}/api/judgings/assign`, {
+                botScoreIds: ids,
+            });
+        }
 
         this.cleanup(project);
 

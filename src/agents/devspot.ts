@@ -64,13 +64,13 @@ class DevspotService {
                 innovation_feedback: innovation.fullAnalysis,
                 technical_summary: technical.summary.summary,
                 technical_feedback: technical.fullAnalysis,
-                score: final.summary.score,
+                score: final.summary.score ?? 0,
                 general_comments_summary: final.summary.summary,
                 general_comments: final.fullAnalysis,
-                business_score: business.summary.score,
-                innovation_score: innovation.summary.score,
-                technical_score: technical.summary.score,
-                ux_score: ux.summary.score,
+                business_score: business.summary.score ?? 0,
+                innovation_score: innovation.summary.score ?? 0,
+                technical_score: technical.summary.score ?? 0,
+                ux_score: ux.summary.score ?? 0,
             })
             .select('*')
             .maybeSingle();
