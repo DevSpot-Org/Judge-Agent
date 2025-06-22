@@ -174,10 +174,6 @@ async function startQueueProcessing(processorFn?: (project: Project) => Promise<
 
     const defaultProcessor = async (job: Job) => {
         const { project } = job.data;
-        console.log(`Processing project: ${project.id}`);
-
-        // Default processing logic - replace with actual implementation
-        await new Promise(resolve => setTimeout(resolve, 1000));
 
         return { projectId: project.id, status: 'completed' };
     };
