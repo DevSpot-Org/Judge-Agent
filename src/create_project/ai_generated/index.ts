@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { fetchHackathonFromDB } from '../../agents/devspot';
+import { fetchHackathonFromDB } from '../../core/devspot';
 import type { Project } from '../../types/entities';
 import { repomixBundler } from '../../utils/codeRetrieval';
 import { createProjectInDB } from '../utils/createProject';

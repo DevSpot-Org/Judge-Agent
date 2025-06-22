@@ -1,4 +1,4 @@
-import { sendNotification } from '../../agents/devspot';
+import { sendNotification } from '../../core/devspot';
 import type { Hackathon } from '../../types/entities';
 import supabase from '../../utils/supabase';
 import type { CreateProjectPayload } from '.././type';
@@ -77,7 +77,7 @@ interface CreateProjectInDBOptions {
 
 const createProjectTeamMembers = async (projectId: number, creatorId: string, team?: ProjectTeamTemplate[]) => {
     const teamMembers = [];
-    
+
     if (team && team.length > 0) {
         const emails = team.map(member => member.email);
         const { data: existingUsers, error: userError } = await supabase.from('users').select('id, email').in('email', emails);

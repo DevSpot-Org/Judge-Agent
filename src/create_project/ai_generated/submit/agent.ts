@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-import { getHackathonChallengesFromDB } from '../../../agents/devspot';
 import { TEMPORARY_FOLDER } from '../../../constants';
+import { getHackathonChallengesFromDB } from '../../../core/devspot';
 import { selectLLMFetcher, type LLMProvider } from '../../../llmProviders';
 import type { HackathonChallenges } from '../../../types/entities';
 import jsonParser from '../../../utils/jsonParser';

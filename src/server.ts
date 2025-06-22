@@ -2,12 +2,11 @@ import { Worker, type Job } from 'bullmq';
 import cors from 'cors';
 import type { Request, Response } from 'express';
 import express from 'express';
-import { createServer } from 'http';
 import { cacheCreds } from './core/cache';
-import { processProjectAnalysis } from './core/queueJob';
-import { SocketService } from './core/socketio';
+import { judgeProjectAsync, judgeprojectQueue } from './core/queueJob';
 import create_project from './create_project';
 import { processLLMJob } from './llmProviders/worker';
+import { addProject } from './main';
 
 const PORT = process.env['PORT'] || 3002;
 const app = express();
@@ -17,36 +16,76 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: false }));
 
-const server = createServer(app);
+app.get('/judge/:project_id', async (req: Request, res: Response) => {
+    try {
+        const projectIdString = req.params['project_id'];
 
-export const socketService = new SocketService(server);
+        if (!projectIdString) {
+            res.status(400).json({ error: 'Project ID is required' });
+            return;
+        }
 
-app.get('/self', (_, res) => {
-    console.log('Self route called');
-    res.send('Self call succeeded!');
-    return;
+        const projectId = parseInt(projectIdString, 10);
+
+        if (isNaN(projectId)) {
+            res.status(400).json({ error: 'Project ID must be a number' });
+            return;
+        }
+
+        await addProject(projectId);
+
+        res.status(200).json({
+            message: `Judging process started for project ID: ${projectId}`,
+        });
+        return;
+    } catch (error) {
+        console.error('Error processing judge request:', error);
+        res.status(500).json({
+            error: 'Internal server error occurred while processing the judge request',
+        });
+        return;
+    }
 });
 
-app.post('/judge/:project_id', async (req: Request, res: Response) => {
-    const projectIdString = req.params['project_id'];
+app.get('/judge/status/:job_id', async (req: Request, res: Response) => {
+    try {
+        const jobId = req.params['job_id'];
 
-    if (!projectIdString) {
-        res.status(400).send({ error: 'Project ID is required' });
+        if (!jobId) {
+            res.status(400).json({ error: 'Job ID is required' });
+            return;
+        }
+
+        const job = await judgeprojectQueue.getJob(jobId);
+
+        if (!job) {
+            res.status(404).json({ error: 'Job not found' });
+            return;
+        }
+
+        const state = await job.getState();
+        const progress = job.progress;
+        const result = job.returnvalue;
+        const failReason = job.failedReason;
+
+        res.status(200).json({
+            jobId: job.id,
+            state,
+            progress,
+            result,
+            failReason,
+            timestamp: job.timestamp,
+            processedOn: job.processedOn,
+            finishedOn: job.finishedOn,
+        });
+        return;
+    } catch (error) {
+        console.error('Error fetching job status:', error);
+        res.status(500).json({
+            error: 'Internal server error occurred while fetching job status',
+        });
+        return;
     }
-
-    const projectId = parseInt(projectIdString, 10);
-
-    if (isNaN(projectId)) {
-        res.status(400).send({ error: 'Project ID must be a number' });
-    }
-
-    
-
-    res.status(200).send({
-        message: `Judging process started for project ID: ${projectId}`,
-    });
-
-    return;
 });
 
 app.post('/project/generate', async (req: Request, res: Response) => {
@@ -83,7 +122,7 @@ app.post('/project/generate', async (req: Request, res: Response) => {
     return;
 });
 
-new Worker('project-analysis', processProjectAnalysis, {
+new Worker('project-judge', judgeProjectAsync, {
     connection: cacheCreds,
     concurrency: 2,
 });
