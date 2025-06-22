@@ -153,7 +153,7 @@ const cleanup = (project: Project) => {
     }
 };
 
-const main = async () => {
+export const startApp = async () => {
     setBatchRefillCallback(getUnjudgedProjectsForQueue);
 
     ['groq', 'gemini', 'openai'].forEach(provider => {
@@ -182,4 +182,3 @@ export const addProject = async (projectId: number) => {
     if (length < 5) await addProjectToQueue(project);
 };
 
-main();
