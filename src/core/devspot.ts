@@ -213,7 +213,8 @@ const getUnJudgedProjects = async () => {
                 )
             `
         )
-        .eq('ai_judged', false);
+        .eq('ai_judged', false)
+        .eq('general_comments_summary', '');
 
     if (error) {
         console.error('Error fetching unjudged project scores:', error);

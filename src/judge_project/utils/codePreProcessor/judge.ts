@@ -30,7 +30,7 @@ export const codePreProcessor = async (submission: Project, provider: LLMProvide
 
     console.log('cleanedXML', { cleanedXML, analysis });
 
-    if (!validateXML(cleanedXML)) return;
+    // if (!validateXML(cleanedXML)) return;
 
     const outputPath = path.join(repoPath);
 

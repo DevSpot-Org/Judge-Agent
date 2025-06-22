@@ -6,7 +6,7 @@ import { TEMPORARY_FOLDER } from './constants';
 import { cacheCreds } from './core/cache';
 import { getProjectChallengesScores, getProjectInformation, getUnJudgedProjects, updateProjectJudgeReportBulk } from './core/devspot';
 import BulkJudge from './judge_project';
-import { addProjectToQueue, getQueueLength, setBatchRefillCallback, setConcurrency, startQueueProcessing } from './judge_project/utils/queue';
+import { addProjectToQueue, getQueueLength, resumeQueue, setBatchRefillCallback, setConcurrency, startQueueProcessing } from './judge_project/utils/queue';
 import { processLLMJob } from './llmProviders/worker';
 import type { HackathonChallenges, Project } from './types/entities';
 import { repomixBundler } from './utils/codeRetrieval';
@@ -16,21 +16,16 @@ import { SubmissionSchema } from './utils/schema';
 import supabase from './utils/supabase';
 
 const getUnjudgedProjectsForQueue = async () => {
-    const projects = await getUnJudgedProjects();
-    const invalidProjects: Project[] = [];
+    const projects: Project[] = await getUnJudgedProjects();
     const validProjects: Project[] = [];
 
     await Promise.all(
         projects.map(async project => {
             try {
-                const result = await SubmissionSchema.safeParseAsync(project);
-
-                if (!result.success) {
-                    invalidProjects.push(project);
-                    throw new Error(`Invalid Project - ${result.error}`);
+                const result = await validateAndProcessProject(project);
+                if (result.isValid) {
+                    validProjects.push(project);
                 }
-
-                validProjects.push(project);
             } catch (error) {
                 console.error(`Error validating project information: ${error}`);
             }
@@ -38,6 +33,50 @@ const getUnjudgedProjectsForQueue = async () => {
     );
 
     return validProjects;
+};
+
+const validateAndProcessProject = async (project: Project) => {
+    const result = await SubmissionSchema.safeParseAsync(project);
+
+    if (!result.success) {
+        await handleInvalidProject(project, result.error.issues);
+        return { isValid: false };
+    }
+
+    return { isValid: true };
+};
+
+const handleInvalidProject = async (project: Project, issues: any[]) => {
+    const errorMessage = issues.map(issue => `${issue.path[0]}: ${issue.message}`).join(', ');
+    const challengeIds = extractChallengeIds(project);
+
+    await updateJudgingBotScores(project.id, challengeIds, errorMessage);
+};
+
+const extractChallengeIds = (project: Project): number[] => {
+    const allChallenges = project.project_challenges?.map(item => item.hackathon_challenges) as HackathonChallenges[];
+    return allChallenges.map(item => item.id);
+};
+
+const updateJudgingBotScores = async (projectId: number, challengeIds: number[], errorMessage: string) => {
+    await Promise.all(
+        challengeIds.map(challengeId =>
+            supabase
+                .from('judging_bot_scores')
+                .upsert(
+                    {
+                        project_id: projectId,
+                        challenge_id: challengeId,
+                        general_comments_summary: errorMessage,
+                    },
+                    {
+                        onConflict: 'project_id,challenge_id',
+                    }
+                )
+                .select('*')
+                .maybeSingle()
+        )
+    );
 };
 
 const judgeProject = async (project: Project) => {
@@ -50,26 +89,10 @@ const judgeProject = async (project: Project) => {
         const challengeArray = allChallenges.map(item => item.id);
 
         const estimatedFileTokens = getEstimtedTokenSize(project?.project_url ?? '');
+        console.log({ estimatedFileTokens });
 
-        if (estimatedFileTokens > 500000) {
-            await Promise.all(
-                challengeArray.map(async item => {
-                    await supabase
-                        .from('judging_bot_scores')
-                        .upsert(
-                            {
-                                project_id: project?.id,
-                                challenge_id: item,
-                                ai_judged: true,
-                            },
-                            {
-                                onConflict: 'project_id,challenge_id',
-                            }
-                        )
-                        .select('*')
-                        .maybeSingle();
-                })
-            );
+        if (estimatedFileTokens < 500000) {
+            await updateJudgingBotScores(project.id, challengeArray, 'Project Codebase is too large to be processed by the AI. Please review the project manually.');
 
             cleanup(project);
 
@@ -180,5 +203,6 @@ export const addProject = async (projectId: number) => {
     const length = await getQueueLength();
 
     if (length < 5) await addProjectToQueue(project);
-};
 
+    resumeQueue();
+};
