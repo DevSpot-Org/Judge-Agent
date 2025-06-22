@@ -89,7 +89,6 @@ const judgeProject = async (project: Project) => {
         const challengeArray = allChallenges.map(item => item.id);
 
         const estimatedFileTokens = getEstimtedTokenSize(project?.project_url ?? '');
-        console.log({ estimatedFileTokens });
 
         if (estimatedFileTokens < 1000000) {
             await updateJudgingBotScores(project.id, challengeArray, 'Project Codebase is too large to be processed by the AI. Please review the project manually.');
@@ -104,7 +103,9 @@ const judgeProject = async (project: Project) => {
 
         const alreadyJudgedChallenges = await getProjectChallengesScores(challengeArray, project.id);
 
-        const notJudgedChallenges = allChallenges.filter(challenge => !alreadyJudgedChallenges.find(score => score.challenge_id === challenge.id));
+        const notJudgedChallenges = allChallenges.filter(
+            challenge => !alreadyJudgedChallenges.find(score => score.challenge_id === challenge.id && !score.ai_judged && score.general_comments_summary == '')
+        );
 
         if (notJudgedChallenges.length <= 0) {
             cleanup(project);

@@ -187,7 +187,7 @@ const updateJudgingEntriesWithAiRecord = async (projectId: number, feedback: Fin
 };
 
 const getProjectChallengesScores = async (challengeIds: number[], projectId: number) => {
-    const { data, error } = await supabase.from('judging_bot_scores').select('*').in('challenge_id', challengeIds).eq('project_id', projectId).eq('ai_judged', true);
+    const { data, error } = await supabase.from('judging_bot_scores').select('*').in('challenge_id', challengeIds).eq('project_id', projectId)
 
     if (error) {
         console.error('Error fetching challenge scores:', error);
