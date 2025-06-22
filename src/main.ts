@@ -68,6 +68,7 @@ const updateJudgingBotScores = async (projectId: number, challengeIds: number[],
                         project_id: projectId,
                         challenge_id: challengeId,
                         general_comments_summary: errorMessage,
+                        ai_judged: false,
                     },
                     {
                         onConflict: 'project_id,challenge_id',
