@@ -91,7 +91,7 @@ const judgeProject = async (project: Project) => {
         const estimatedFileTokens = getEstimtedTokenSize(project?.project_url ?? '');
         console.log({ estimatedFileTokens });
 
-        if (estimatedFileTokens < 500000) {
+        if (estimatedFileTokens < 1000000) {
             await updateJudgingBotScores(project.id, challengeArray, 'Project Codebase is too large to be processed by the AI. Please review the project manually.');
 
             cleanup(project);
