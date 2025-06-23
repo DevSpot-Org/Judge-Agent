@@ -15,6 +15,8 @@ export interface QueueProject {
     error?: string;
     result?: JudgingResult;
     retryCount: number;
+    progressMessage?: string
+
 }
 
 export interface JudgingResult {
@@ -115,6 +117,7 @@ async function getAllQueueProjects(): Promise<QueueProject[]> {
                 progress: 0,
                 createdAt: new Date(job.timestamp).toISOString(),
                 retryCount: job.attemptsMade,
+                progressMessage: job.data?.progressMessage,
             });
         }
 
@@ -135,6 +138,7 @@ async function getAllQueueProjects(): Promise<QueueProject[]> {
                 createdAt: new Date(job.timestamp).toISOString(),
                 startedAt: job.processedOn ? new Date(job.processedOn).toISOString() : undefined,
                 retryCount: job.attemptsMade,
+                progressMessage: job.data?.progressMessage,
             });
         }
 
@@ -156,6 +160,7 @@ async function getAllQueueProjects(): Promise<QueueProject[]> {
                 completedAt: job.finishedOn ? new Date(job.finishedOn).toISOString() : undefined,
                 result: job.returnvalue,
                 retryCount: job.attemptsMade,
+                progressMessage: job.data?.progressMessage,
             });
         }
 
@@ -176,6 +181,7 @@ async function getAllQueueProjects(): Promise<QueueProject[]> {
                 startedAt: job.processedOn ? new Date(job.processedOn).toISOString() : undefined,
                 error: job.failedReason,
                 retryCount: job.attemptsMade,
+                progressMessage: job.data?.progressMessage,
             });
         }
 
