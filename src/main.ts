@@ -80,10 +80,11 @@ const updateJudgingBotScores = async (projectId: number, challengeIds: number[],
     );
 };
 
-const judgeProject = async (project: Project) => {
+const judgeProject = async (project: Project, updateProgress: (progress: number, message?: string) => Promise<void>) => {
     try {
         console.log(`\nProcessing project: ${project.name}`);
         await repomixBundler(project.project_url ?? '');
+        await updateProgress(20, 'Completed Retrieving Code');
 
         const allChallenges = project.project_challenges?.map(item => item.hackathon_challenges) as HackathonChallenges[];
 
@@ -91,7 +92,7 @@ const judgeProject = async (project: Project) => {
 
         const estimatedFileTokens = getEstimtedTokenSize(project?.project_url ?? '');
 
-        if (estimatedFileTokens < 1000000) {
+        if (estimatedFileTokens > 1000000) {
             await updateJudgingBotScores(project.id, challengeArray, 'Project Codebase is too large to be processed by the AI. Please review the project manually.');
 
             cleanup(project);
@@ -119,9 +120,13 @@ const judgeProject = async (project: Project) => {
 
         const judge = new BulkJudge(project, notJudgedChallenges!);
 
-        const response = await judge.projectJudgeAnalysis();
+        const response = await judge.projectJudgeAnalysis(updateProgress);
+
+        await updateProgress(80, 'Completed Judging Code..., Saving to DB');
 
         const data = await updateProjectJudgeReportBulk(project.id, response);
+
+        await updateProgress(90, 'Saved to Database Successfully');
 
         const botScoreIds = data?.map(item => item.id);
 

@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import express from 'express';
 import create_project from './create_project';
 import { addProject, startApp } from './main';
+import router from './router';
 
 const PORT = process.env['PORT'] || 3002;
 const app = express();
@@ -13,6 +14,8 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: false }));
 
 startApp();
+
+app.use('/queue', router);
 
 app.get('/judge/:project_id', async (req: Request, res: Response) => {
     try {

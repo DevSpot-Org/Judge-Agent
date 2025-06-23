@@ -50,7 +50,8 @@ class BulkJudge {
         if (concurrencyLimit) this.concurrencyLimit = concurrencyLimit;
     }
 
-    async projectJudgeAnalysis() {
+    async projectJudgeAnalysis(updateProgress?: (progress: number, message?: string) => Promise<void>) {
+        const updateFn = updateProgress ? updateProgress : () => {};
         const startTime = Date.now();
         console.log(`🚀 Starting analysis for project ${this.project.name}`);
 
@@ -65,6 +66,8 @@ class BulkJudge {
         ]);
 
         const results = await judgingPromises;
+
+        await updateFn(60, 'Completed Base Judges, Computing Final Judge');
 
         // Handle any failures
         const processedResults: Record<string, any> = {};
@@ -90,6 +93,7 @@ class BulkJudge {
 
         const finalData = this.restructureResults(data);
         const finalReview = await this.finalJudging(finalData);
+
 
         this.challenges.forEach(challenge => {
             if (finalReview[challenge.id]) {
@@ -281,7 +285,7 @@ class BulkJudge {
                 ux: results.ux?.[challengeId] || defaultAnalysis,
                 business: results.business?.[challengeId] || defaultAnalysis,
                 innovation: results.innovation?.[challengeId] || defaultAnalysis,
-                final: defaultAnalysis, 
+                final: defaultAnalysis,
             };
         });
 

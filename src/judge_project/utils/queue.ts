@@ -1,6 +1,26 @@
 import { Job, Queue, QueueEvents, Worker } from 'bullmq';
 import { cacheCreds } from '../../core/cache';
-import type { Project } from '../../types/entities';
+import type { HackathonChallenges, JudgingBotScores, Project } from '../../types/entities';
+
+export interface QueueProject {
+    jobId: string;
+    projectId: string;
+    projectName: string;
+    challengeName: string;
+    status: 'waiting' | 'active' | 'completed' | 'failed';
+    progress: number; // 0-100
+    createdAt: string;
+    startedAt?: string;
+    completedAt?: string;
+    error?: string;
+    result?: JudgingResult;
+    retryCount: number;
+}
+
+export interface JudgingResult {
+    project: Project;
+    allReviews: JudgingBotScores[];
+}
 
 export interface QueueProgress {
     waiting: number;
@@ -8,9 +28,14 @@ export interface QueueProgress {
     completed: number;
     failed: number;
     total: number;
+    concurrency: number;
+    isRunning: boolean;
+    isPaused: boolean;
 }
 
-const projectQueue = new Queue('project-judging', {
+type UpdateProgress = (progress: number, message?: string) => Promise<void>;
+
+const judgingQueue = new Queue('project-judging', {
     connection: cacheCreds,
     defaultJobOptions: {
         removeOnComplete: 100,
@@ -36,9 +61,186 @@ let batchRefillCallback: BatchRefillCallback | null = null;
 
 const LOW_QUEUE_THRESHOLD = 2;
 
+const activeJobProgress = new Map<string, number>();
+
+/**
+ * Update progress for an active job
+ */
+async function updateJobProgress(jobId: string, progress: number, message?: string): Promise<void> {
+    try {
+        const job: Job = await judgingQueue.getJob(jobId);
+        if (job) {
+            activeJobProgress.set(jobId, Math.min(100, Math.max(0, progress)));
+
+            // Update job data with progress
+            await job.updateProgress(progress);
+
+            // Optionally update job data with custom message
+            if (message) {
+                await job.updateData({
+                    ...job.data,
+                    progressMessage: message,
+                    lastProgressUpdate: new Date().toISOString(),
+                });
+            }
+
+            console.log(`Job ${jobId} progress updated to ${progress}%${message ? `: ${message}` : ''}`);
+        }
+    } catch (error) {
+        console.error(`Error updating progress for job ${jobId}:`, error);
+    }
+}
+
+/**
+ * Get all projects in the queue with their current status
+ */
+async function getAllQueueProjects(): Promise<QueueProject[]> {
+    try {
+        const [waiting, active, completed, failed] = await Promise.all([judgingQueue.getWaiting(), judgingQueue.getActive(), judgingQueue.getCompleted(), judgingQueue.getFailed()]);
+
+        const projects: QueueProject[] = [];
+
+        // Process waiting jobs
+        for (const job of waiting) {
+            const project: Project = job.data.project;
+            const allChallenges = project.project_challenges?.map(item => item.hackathon_challenges) as HackathonChallenges[];
+            const challengeArray = allChallenges.map(item => item.challenge_name).join(', ');
+
+            projects.push({
+                jobId: job.id!,
+                projectId: job.data.project.id,
+                projectName: job.data.project.name,
+                challengeName: challengeArray,
+                status: 'waiting',
+                progress: 0,
+                createdAt: new Date(job.timestamp).toISOString(),
+                retryCount: job.attemptsMade,
+            });
+        }
+
+        // Process active jobs
+        for (const job of active) {
+            const project: Project = job.data.project;
+            const allChallenges = project.project_challenges?.map(item => item.hackathon_challenges) as HackathonChallenges[];
+            const challengeArray = allChallenges.map(item => item.challenge_name).join(', ');
+
+            const progress = activeJobProgress.get(job.id!) || job.progress || 0;
+            projects.push({
+                jobId: job.id!,
+                projectId: job.data.project.id,
+                projectName: job.data.project.name,
+                challengeName: challengeArray,
+                status: 'active',
+                progress,
+                createdAt: new Date(job.timestamp).toISOString(),
+                startedAt: job.processedOn ? new Date(job.processedOn).toISOString() : undefined,
+                retryCount: job.attemptsMade,
+            });
+        }
+
+        // Process completed jobs
+        for (const job of completed) {
+            const project: Project = job.data.project;
+            const allChallenges = project.project_challenges?.map(item => item.hackathon_challenges) as HackathonChallenges[];
+            const challengeArray = allChallenges.map(item => item.challenge_name).join(', ');
+
+            projects.push({
+                jobId: job.id!,
+                projectId: job.data.project.id,
+                projectName: job.data.project.name,
+                challengeName: challengeArray,
+                status: 'completed',
+                progress: 100,
+                createdAt: new Date(job.timestamp).toISOString(),
+                startedAt: job.processedOn ? new Date(job.processedOn).toISOString() : undefined,
+                completedAt: job.finishedOn ? new Date(job.finishedOn).toISOString() : undefined,
+                result: job.returnvalue,
+                retryCount: job.attemptsMade,
+            });
+        }
+
+        // Process failed jobs
+        for (const job of failed) {
+            const project: Project = job.data.project;
+            const allChallenges = project.project_challenges?.map(item => item.hackathon_challenges) as HackathonChallenges[];
+            const challengeArray = allChallenges.map(item => item.challenge_name).join(', ');
+
+            projects.push({
+                jobId: job.id!,
+                projectId: job.data.project.id,
+                projectName: job.data.project.name,
+                challengeName: challengeArray,
+                status: 'failed',
+                progress: 0,
+                createdAt: new Date(job.timestamp).toISOString(),
+                startedAt: job.processedOn ? new Date(job.processedOn).toISOString() : undefined,
+                error: job.failedReason,
+                retryCount: job.attemptsMade,
+            });
+        }
+
+        // Sort by creation time (newest first)
+        return projects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+        console.error('Error getting queue projects:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get enhanced queue statistics
+ */
+async function getQueueStats(): Promise<QueueProgress> {
+    try {
+        const counts = await judgingQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused');
+
+        const isPaused = await judgingQueue.isPaused();
+
+        return {
+            waiting: counts['waiting'],
+            active: counts['active'],
+            completed: counts['completed'],
+            failed: counts['failed'],
+            total: counts['waiting'] + counts['active'] + counts['completed'] + counts['failed'],
+            concurrency: currentConcurrency,
+            isRunning: worker !== null,
+            isPaused,
+        };
+    } catch (error) {
+        console.error('Error getting queue stats:', error);
+        throw error;
+    }
+}
+
+async function retryFailedJob(jobId: string): Promise<void> {
+    try {
+        const job = await judgingQueue.getJob(jobId);
+        if (job && job.isFailed()) {
+            await job.retry();
+            console.log(`Job ${jobId} queued for retry`);
+        } else {
+            throw new Error(`Job ${jobId} not found or not in failed state`);
+        }
+    } catch (error) {
+        console.error(`Error retrying job ${jobId}:`, error);
+        throw error;
+    }
+}
+
+async function removeJob(jobId: string): Promise<void> {
+    const job = await judgingQueue.getJob(jobId);
+    if (job) {
+        await job.remove();
+        activeJobProgress.delete(jobId);
+        console.log(`Job ${jobId} removed from queue`);
+    } else {
+        throw new Error(`Job ${jobId} not found`);
+    }
+}
+
 async function addProjectToQueue(project: Project): Promise<string> {
     try {
-        const job = await projectQueue.add('judge-project', { project });
+        const job = await judgingQueue.add('judge-project', { project, startTime: new Date().toISOString() });
 
         console.log(`Project ${project.id} added to queue with job ID: ${job.id}`);
         return job.id!;
@@ -52,10 +254,10 @@ async function addProjectsBatch(projects: Project[]): Promise<string[]> {
     try {
         const jobs = projects.map(project => ({
             name: 'judge-project',
-            data: { project },
+            data: { project, startTime: new Date().toISOString() },
         }));
 
-        const addedJobs = await projectQueue.addBulk(jobs);
+        const addedJobs = await judgingQueue.addBulk(jobs);
         const jobIds = addedJobs.map(job => job.id!);
 
         console.log(`Added ${projects.length} projects to queue`);
@@ -72,8 +274,8 @@ function setBatchRefillCallback(callback: BatchRefillCallback): void {
 
 async function getQueueLength(): Promise<number> {
     try {
-        const waiting = await projectQueue.getWaiting();
-        const active = await projectQueue.getActive();
+        const waiting = await judgingQueue.getWaiting();
+        const active = await judgingQueue.getActive();
         return waiting.length + active.length;
     } catch (error) {
         console.error('Error getting queue length:', error);
@@ -85,8 +287,8 @@ async function checkAndRefillQueue(): Promise<void> {
     if (!batchRefillCallback) return;
 
     try {
-        const waiting = await projectQueue.getWaiting();
-        const active = await projectQueue.getActive();
+        const waiting = await judgingQueue.getWaiting();
+        const active = await judgingQueue.getActive();
         const totalInProgress = waiting.length + active.length;
 
         if (totalInProgress <= LOW_QUEUE_THRESHOLD) {
@@ -111,43 +313,6 @@ async function checkAndRefillQueue(): Promise<void> {
     }
 }
 
-async function getQueueProgress(): Promise<QueueProgress> {
-    try {
-        const waiting = await projectQueue.getWaiting();
-        const active = await projectQueue.getActive();
-        const completed = await projectQueue.getCompleted();
-        const failed = await projectQueue.getFailed();
-
-        const progress: QueueProgress = {
-            waiting: waiting.length,
-            active: active.length,
-            completed: completed.length,
-            failed: failed.length,
-            total: waiting.length + active.length + completed.length + failed.length,
-        };
-
-        return progress;
-    } catch (error) {
-        console.error('Error getting queue progress:', error);
-        throw error;
-    }
-}
-
-async function getQueueStats() {
-    try {
-        const counts = await projectQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused');
-
-        return {
-            ...counts,
-            concurrency: currentConcurrency,
-            isRunning: worker !== null,
-        };
-    } catch (error) {
-        console.error('Error getting queue stats:', error);
-        throw error;
-    }
-}
-
 async function setConcurrency(newConcurrency: number): Promise<void> {
     if (newConcurrency < 1) {
         throw new Error('Concurrency must be at least 1');
@@ -164,7 +329,7 @@ async function setConcurrency(newConcurrency: number): Promise<void> {
     console.log(`Concurrency set to ${newConcurrency}`);
 }
 
-async function startQueueProcessing(processorFn?: (project: Project) => Promise<any>): Promise<void> {
+async function startQueueProcessing(processorFn?: (project: Project, updateProgress: UpdateProgress) => Promise<any>): Promise<void> {
     if (worker) {
         console.log('Queue processing is already running');
         return;
@@ -178,17 +343,52 @@ async function startQueueProcessing(processorFn?: (project: Project) => Promise<
         return { projectId: project.id, status: 'completed' };
     };
 
-    const processor = processorFn ? async (job: Job) => await processorFn(job.data.project) : defaultProcessor;
+    const processor = processorFn ? processorFn : defaultProcessor;
 
-    worker = new Worker('project-judging', processor, {
-        connection: cacheCreds,
-        concurrency: currentConcurrency,
-        lockDuration: 180000,
-    });
+    worker = new Worker(
+        'project-judging',
+        async (job: Job) => {
+            const { project } = job.data;
+            const jobId = job.id!;
+
+            console.log(`Starting to judge project: ${project.name}`);
+
+            // Create progress update function for the job
+            const updateProgress = async (progress: number, message?: string) => {
+                await updateJobProgress(jobId, progress, message);
+            };
+
+            try {
+                // Initialize progress
+                await updateProgress(0, 'Starting judging process...');
+
+                // Run the actual judging function
+                const result = await processor(project, updateProgress);
+
+                // Final progress update
+                await updateProgress(100, 'Judging completed');
+
+                // Clean up progress tracking
+                activeJobProgress.delete(jobId);
+
+                return result;
+            } catch (error) {
+                // Clean up progress tracking on error
+                activeJobProgress.delete(jobId);
+                throw error;
+            }
+        },
+        {
+            connection: cacheCreds,
+            concurrency: currentConcurrency,
+            lockDuration: 180000,
+        }
+    );
 
     // Set up event listeners
     worker.on('completed', async (job: Job) => {
         console.log(`Job ${job.id} completed for project ${job.data.project.id}`);
+
         await checkAndRefillQueue();
     });
 
@@ -196,8 +396,11 @@ async function startQueueProcessing(processorFn?: (project: Project) => Promise<
         console.error(`Job ${job?.id} failed:`, err.message);
     });
 
-    worker.on('error', (err: Error) => {
-        console.error('Worker error:', err);
+    worker.on('failed', (job: Job | undefined, err: Error) => {
+        console.error(`Judging failed for project ${job?.data.project.id}:`, err.message);
+        if (job?.id) {
+            activeJobProgress.delete(job.id);
+        }
     });
 
     console.log(`Queue processing started with concurrency: ${currentConcurrency}`);
@@ -212,37 +415,92 @@ async function stopQueueProcessing(): Promise<void> {
 }
 
 async function pauseQueue(): Promise<void> {
-    await projectQueue.pause();
+    await judgingQueue.pause();
     console.log('Queue paused');
 }
 
 async function resumeQueue(): Promise<void> {
-    await projectQueue.resume();
+    await judgingQueue.resume();
     console.log('Queue resumed');
 }
 
 async function clearQueue(): Promise<void> {
-    await projectQueue.obliterate({ force: true });
+    await judgingQueue.obliterate({ force: true });
     console.log('Queue cleared');
 }
 
 async function getJob(jobId: string): Promise<Job | null> {
-    return await projectQueue.getJob(jobId);
-}
-
-async function removeJob(jobId: string): Promise<void> {
-    const job = await projectQueue.getJob(jobId);
-    if (job) {
-        await job.remove();
-        console.log(`Job ${jobId} removed`);
-    }
+    return await judgingQueue.getJob(jobId);
 }
 
 async function cleanup(): Promise<void> {
     await stopQueueProcessing();
-    await projectQueue.close();
+    await judgingQueue.close();
     await queueEvents.close();
     console.log('Queue service cleanup completed');
+}
+
+/**
+ * Clear completed jobs
+ */
+export async function clearCompletedJobs(): Promise<void> {
+    await judgingQueue.clean(0, 1000, 'completed');
+    console.log('Completed jobs cleared');
+}
+
+/**
+ * Clear failed jobs
+ */
+export async function clearFailedJobs(): Promise<void> {
+    await judgingQueue.clean(0, 1000, 'failed');
+    console.log('Failed jobs cleared');
+}
+
+/**
+ * Get specific project details
+ */
+export async function getProjectDetails(jobId: string): Promise<QueueProject | null> {
+    try {
+        const job = await judgingQueue.getJob(jobId);
+        if (!job) return null;
+
+        const progress = activeJobProgress.get(jobId) || job.progress || 0;
+        let status: QueueProject['status'] = 'waiting';
+
+        if (job.isCompleted()) status = 'completed';
+        else if (job.isFailed()) status = 'failed';
+        else if (job.isActive()) status = 'active';
+
+        return {
+            jobId: job.id!,
+            projectId: job.data.project.id,
+            projectName: job.data.project.name,
+            challengeName: job.data.project.challengeName,
+            status,
+            progress,
+            createdAt: new Date(job.timestamp).toISOString(),
+            startedAt: job.processedOn ? new Date(job.processedOn).toISOString() : undefined,
+            completedAt: job.finishedOn ? new Date(job.finishedOn).toISOString() : undefined,
+            error: job.failedReason,
+            result: job.returnvalue,
+            retryCount: job.attemptsMade,
+        };
+    } catch (error) {
+        console.error(`Error getting project details for job ${jobId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Stop the judging processor
+ */
+export async function stopJudgingProcessor(): Promise<void> {
+    if (worker) {
+        await worker.close();
+        worker = null;
+        activeJobProgress.clear();
+        console.log('Judging processor stopped');
+    }
 }
 
 // Set up periodic queue monitoring
@@ -253,14 +511,16 @@ export {
     addProjectToQueue,
     cleanup,
     clearQueue,
+    getAllQueueProjects,
     getJob,
     getQueueLength,
-    getQueueProgress,
     getQueueStats,
     pauseQueue,
     removeJob,
     resumeQueue,
+    retryFailedJob,
     setBatchRefillCallback,
     setConcurrency,
     startQueueProcessing,
+    updateJobProgress,
 };
