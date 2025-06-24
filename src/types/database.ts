@@ -1012,6 +1012,7 @@ export type Database = {
           business_summary: string
           challenge_id: number
           created_at: string
+          flagged_comments: string | null
           general_comments: string
           general_comments_summary: string
           id: number
@@ -1035,6 +1036,7 @@ export type Database = {
           business_summary?: string
           challenge_id: number
           created_at?: string
+          flagged_comments?: string | null
           general_comments?: string
           general_comments_summary?: string
           id?: number
@@ -1058,6 +1060,7 @@ export type Database = {
           business_summary?: string
           challenge_id?: number
           created_at?: string
+          flagged_comments?: string | null
           general_comments?: string
           general_comments_summary?: string
           id?: number

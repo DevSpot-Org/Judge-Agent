@@ -1,4 +1,5 @@
 import { Novu } from '@novu/api';
+import type { ProjectAnalysisResult } from '../judge_project/utils/flag-logic';
 import type { Hackathon, HackathonChallenges, Project } from '../types/entities';
 import supabase from '../utils/supabase';
 
@@ -53,7 +54,7 @@ const sendNotification = async (workflowId: string, creator_id: string, hackatho
 };
 
 const fetchHackathonFromDB = async (hackathon_id: number) => {
-    const { data: hackathon } = await supabase.from('hackathons').select('id, name, start_date').eq('id', hackathon_id).single();
+    const { data: hackathon } = await supabase.from('hackathons').select('id, name, start_date, end_date').eq('id', hackathon_id).single();
 
     return hackathon;
 };
@@ -104,7 +105,9 @@ const updateProjectJudgeReport = async (projectId: number, challengeId: number, 
     return data;
 };
 
-const updateProjectJudgeReportBulk = async (projectId: number, feedback: FinalBulkAnalysisResult) => {
+const updateProjectJudgeReportBulk = async (projectId: number, feedback: FinalBulkAnalysisResult, flaggedAnalysis: ProjectAnalysisResult) => {
+    const { flagged } = flaggedAnalysis;
+
     // Convert feedback object into array of records to insert
     const recordsToInsert = Object.entries(feedback).map(([challengeId, analysis]) => ({
         project_id: projectId,
@@ -125,6 +128,7 @@ const updateProjectJudgeReportBulk = async (projectId: number, feedback: FinalBu
         technical_score: analysis.technical.score ?? 0,
         ux_score: analysis.ux.score ?? 0,
         ai_judged: true,
+        flagged_comments: flagged?.value ? flagged?.reason : undefined,
     }));
 
     const { data, error } = await supabase
@@ -205,10 +209,10 @@ const getUnJudgedProjects = async () => {
                 *, 
                 project:project_id (
                     *,  
+                    hackathons (*),
                     project_challenges (
                         challenge_id,
                         hackathon_challenges (*)
-            
                     )
                 )
             `

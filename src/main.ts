@@ -6,6 +6,7 @@ import { TEMPORARY_FOLDER } from './constants';
 import { cacheCreds } from './core/cache';
 import { getProjectChallengesScores, getProjectInformation, getUnJudgedProjects, updateProjectJudgeReportBulk } from './core/devspot';
 import BulkJudge from './judge_project';
+import { analyzeProjectForIrregularities } from './judge_project/utils/flag-logic';
 import { addProjectToQueue, getQueueLength, resumeQueue, setBatchRefillCallback, setConcurrency, startQueueProcessing } from './judge_project/utils/queue';
 import { processLLMJob } from './llmProviders/worker';
 import type { HackathonChallenges, Project } from './types/entities';
@@ -122,11 +123,15 @@ const judgeProject = async (project: Project, updateProgress: (progress: number,
 
         const response = await judge.projectJudgeAnalysis(updateProgress);
 
-        await updateProgress(80, 'Completed Judging Code..., Saving to DB');
+        await updateProgress(80, 'Completed Judging Code..., Getting Flag Report');
 
-        const data = await updateProjectJudgeReportBulk(project.id, response);
+        const flaggedAnalysis = await analyzeProjectForIrregularities(project?.project_url ?? '', project?.hackathon!);
 
-        await updateProgress(90, 'Saved to Database Successfully');
+        await updateProgress(90, 'Completed Flag Analysis..., Saving to Database');
+
+        const data = await updateProjectJudgeReportBulk(project.id, response, flaggedAnalysis);
+
+        await updateProgress(95, 'Saved to Database Successfully');
 
         const botScoreIds = data?.map(item => item.id);
 
