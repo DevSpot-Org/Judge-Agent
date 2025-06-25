@@ -18,10 +18,14 @@ import supabase from './utils/supabase';
 
 const getUnjudgedProjectsForQueue = async () => {
     const projects: Project[] = await getUnJudgedProjects();
+    const filteredProjects = projects.filter(item => {
+        const hackathon = item.hackathon;
+        return hackathon && hackathon.use_judge_bot === true;
+    });
     const validProjects: Project[] = [];
 
     await Promise.all(
-        projects.map(async project => {
+        filteredProjects.map(async project => {
             try {
                 const result = await validateAndProcessProject(project);
                 if (result.isValid) {
@@ -83,6 +87,8 @@ const updateJudgingBotScores = async (projectId: number, challengeIds: number[],
 
 const judgeProject = async (project: Project, updateProgress: (progress: number, message?: string) => Promise<void>) => {
     try {
+        if (!project?.hackathon?.use_judge_bot) return;
+
         console.log(`\nProcessing project: ${project.name}`);
         await repomixBundler(project.project_url ?? '');
         await updateProgress(20, 'Completed Retrieving Code');
@@ -214,7 +220,7 @@ export const addProject = async (projectId: number) => {
 
     const length = await getQueueLength();
 
-    if (length < 5) await addProjectToQueue(project);
+    if (length < 5 && project?.hackathon?.use_judge_bot) await addProjectToQueue(project);
 
     resumeQueue();
 };

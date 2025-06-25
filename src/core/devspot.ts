@@ -242,6 +242,7 @@ const getProjectInformation = async (projectId: number) => {
         .select(
             `
             *,
+            hackathons (*),
             project_challenges (
                 challenge_id,
                 hackathon_challenges (*)

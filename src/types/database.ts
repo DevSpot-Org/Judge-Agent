@@ -939,6 +939,7 @@ export type Database = {
           technologies: string[] | null
           type: Database["public"]["Enums"]["hackathon_type"]
           updated_at: string
+          use_judge_bot: boolean
         }
         Insert: {
           allow_multiple_teams?: boolean
@@ -966,6 +967,7 @@ export type Database = {
           technologies?: string[] | null
           type: Database["public"]["Enums"]["hackathon_type"]
           updated_at?: string
+          use_judge_bot?: boolean
         }
         Update: {
           allow_multiple_teams?: boolean
@@ -993,6 +995,7 @@ export type Database = {
           technologies?: string[] | null
           type?: Database["public"]["Enums"]["hackathon_type"]
           updated_at?: string
+          use_judge_bot?: boolean
         }
         Relationships: [
           {
@@ -1151,6 +1154,7 @@ export type Database = {
           innovation_feedback: string
           innovation_score: number
           innovation_summary: string
+          judging_bot_scores_id: number | null
           judging_id: number | null
           judging_status: Database["public"]["Enums"]["judging_status"]
           project_id: number
@@ -1178,6 +1182,7 @@ export type Database = {
           innovation_feedback: string
           innovation_score: number
           innovation_summary?: string
+          judging_bot_scores_id?: number | null
           judging_id?: number | null
           judging_status: Database["public"]["Enums"]["judging_status"]
           project_id: number
@@ -1205,6 +1210,7 @@ export type Database = {
           innovation_feedback?: string
           innovation_score?: number
           innovation_summary?: string
+          judging_bot_scores_id?: number | null
           judging_id?: number | null
           judging_status?: Database["public"]["Enums"]["judging_status"]
           project_id?: number
@@ -1224,6 +1230,13 @@ export type Database = {
             columns: ["challenge_id"]
             isOneToOne: false
             referencedRelation: "hackathon_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "judging_entries_judging_bot_scores_id_fkey"
+            columns: ["judging_bot_scores_id"]
+            isOneToOne: false
+            referencedRelation: "judging_bot_scores"
             referencedColumns: ["id"]
           },
           {
