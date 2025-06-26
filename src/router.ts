@@ -2,6 +2,7 @@ import express from 'express';
 import {
     clearCompletedJobs,
     clearFailedJobs,
+    clearAllJobs,
     getAllQueueProjects,
     getProjectDetails,
     getQueueStats,
@@ -184,6 +185,16 @@ router.delete('/completed', async (req, res) => {
     } catch (error) {
         console.error('Error clearing completed jobs:', error);
         res.status(500).json({ error: 'Failed to clear completed jobs' });
+    }
+});
+
+router.delete('/all', async (req, res) => {
+    try {
+        await clearAllJobs();
+        res.json({ message: 'Jobs cleared successfully' });
+    } catch (error) {
+        console.error('Error clearing all jobs:', error);
+        res.status(500).json({ error: 'Failed to clear all jobs' });
     }
 });
 

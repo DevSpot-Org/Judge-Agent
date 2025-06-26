@@ -10,8 +10,8 @@ export const SubmissionSchema = z.object({
     id: z.number().int().describe('Unique identifier for this project'),
     hackathon_id: z.number().int().describe('ID of the hackathon this project belongs to'),
     name: z.string().min(1).describe('Name of the project'),
-    description: z.string().min(1).describe('Full description of the project'),
-    tagline: z.string().min(1).describe('Short tagline for the project'),
+    description: z.string().default('').describe('Full description of the project'),
+    tagline: z.string().default('').describe('Short tagline for the project'),
     submitted: z.boolean().describe('Whether the project has been submitted'),
     project_url: z
         .string()

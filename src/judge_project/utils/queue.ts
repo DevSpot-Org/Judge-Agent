@@ -446,6 +446,10 @@ async function cleanup(): Promise<void> {
     console.log('Queue service cleanup completed');
 }
 
+export async function clearAllJobs(): Promise<void> {
+    await judgingQueue.clean(0, 1000);
+    console.log('jobs cleared');
+}
 /**
  * Clear completed jobs
  */
