@@ -18,8 +18,9 @@ import supabase from './utils/supabase';
 
 const getUnjudgedProjectsForQueue = async () => {
     const projects: Project[] = await getUnJudgedProjects();
+
     const filteredProjects = projects.filter(item => {
-        const hackathon = item.hackathon;
+        const hackathon = item.hackathons;
         return hackathon && hackathon.use_judge_bot === true;
     });
     const validProjects: Project[] = [];
@@ -87,7 +88,7 @@ const updateJudgingBotScores = async (projectId: number, challengeIds: number[],
 
 const judgeProject = async (project: Project, updateProgress: (progress: number, message?: string) => Promise<void>) => {
     try {
-        if (!project?.hackathon?.use_judge_bot) return;
+        if (!project?.hackathons?.use_judge_bot) return;
 
         console.log(`\nProcessing project: ${project.name}`);
         await repomixBundler(project.project_url ?? '');
@@ -131,7 +132,7 @@ const judgeProject = async (project: Project, updateProgress: (progress: number,
 
         await updateProgress(80, 'Completed Judging Code..., Getting Flag Report');
 
-        const flaggedAnalysis = await analyzeProjectForIrregularities(project?.project_url ?? '', project?.hackathon!);
+        const flaggedAnalysis = await analyzeProjectForIrregularities(project?.project_url ?? '', project?.hackathons!);
 
         await updateProgress(90, 'Completed Flag Analysis..., Saving to Database');
 
@@ -220,7 +221,7 @@ export const addProject = async (projectId: number) => {
 
     const length = await getQueueLength();
 
-    if (length < 5 && project?.hackathon?.use_judge_bot) await addProjectToQueue(project);
+    if (length < 5 && project?.hackathons?.use_judge_bot) await addProjectToQueue(project);
 
     resumeQueue();
 };

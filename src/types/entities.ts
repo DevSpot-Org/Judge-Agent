@@ -11,7 +11,7 @@ export type ProjectChallenges = DatabaseTables['project_challenges']['Row'] & {
 };
 export type Project = DatabaseTables['projects']['Row'] & {
     project_challenges?: Partial<ProjectChallenges>[];
-    hackathon?: Hackathon;
+    hackathons?: Hackathon;
 };
 
 export type JudgingBotScores = DatabaseTables['judging_bot_scores']['Row'];
