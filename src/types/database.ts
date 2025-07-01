@@ -240,6 +240,7 @@ export type Database = {
       hackathon_challenge_feedback: {
         Row: {
           challenge_id: number
+          challenge_recommendation_rating: number | null
           comments: string | null
           created_at: string
           docs_rating: number | null
@@ -251,6 +252,7 @@ export type Database = {
         }
         Insert: {
           challenge_id: number
+          challenge_recommendation_rating?: number | null
           comments?: string | null
           created_at?: string
           docs_rating?: number | null
@@ -262,6 +264,7 @@ export type Database = {
         }
         Update: {
           challenge_id?: number
+          challenge_recommendation_rating?: number | null
           comments?: string | null
           created_at?: string
           docs_rating?: number | null
@@ -1024,6 +1027,7 @@ export type Database = {
           innovation_summary: string
           project_id: number
           score: number
+          suspicious_flags: string | null
           technical_feedback: string
           technical_score: number
           technical_summary: string
@@ -1048,6 +1052,7 @@ export type Database = {
           innovation_summary?: string
           project_id: number
           score?: number
+          suspicious_flags?: string | null
           technical_feedback?: string
           technical_score?: number
           technical_summary?: string
@@ -1072,6 +1077,7 @@ export type Database = {
           innovation_summary?: string
           project_id?: number
           score?: number
+          suspicious_flags?: string | null
           technical_feedback?: string
           technical_score?: number
           technical_summary?: string
@@ -1104,6 +1110,7 @@ export type Database = {
           id: number
           is_winner_assigner: boolean
           judging_id: number
+          submitted_winners: boolean
           updated_at: string | null
         }
         Insert: {
@@ -1112,6 +1119,7 @@ export type Database = {
           id?: number
           is_winner_assigner: boolean
           judging_id: number
+          submitted_winners?: boolean
           updated_at?: string | null
         }
         Update: {
@@ -1120,6 +1128,7 @@ export type Database = {
           id?: number
           is_winner_assigner?: boolean
           judging_id?: number
+          submitted_winners?: boolean
           updated_at?: string | null
         }
         Relationships: [
@@ -1160,6 +1169,7 @@ export type Database = {
           project_id: number
           score: number
           standing: string | null
+          suspicious_flags: string | null
           technical_feedback: string
           technical_score: number
           technical_summary: string
@@ -1188,6 +1198,7 @@ export type Database = {
           project_id: number
           score: number
           standing?: string | null
+          suspicious_flags?: string | null
           technical_feedback: string
           technical_score: number
           technical_summary?: string
@@ -1216,6 +1227,7 @@ export type Database = {
           project_id?: number
           score?: number
           standing?: string | null
+          suspicious_flags?: string | null
           technical_feedback?: string
           technical_score?: number
           technical_summary?: string
@@ -1668,6 +1680,7 @@ export type Database = {
           challenge_id: number
           created_at: string
           id: number
+          prize_id: number | null
           project_id: number
           rank: number | null
           updated_at: string
@@ -1676,6 +1689,7 @@ export type Database = {
           challenge_id: number
           created_at?: string
           id?: number
+          prize_id?: number | null
           project_id: number
           rank?: number | null
           updated_at?: string
@@ -1684,6 +1698,7 @@ export type Database = {
           challenge_id?: number
           created_at?: string
           id?: number
+          prize_id?: number | null
           project_id?: number
           rank?: number | null
           updated_at?: string
@@ -1694,6 +1709,13 @@ export type Database = {
             columns: ["challenge_id"]
             isOneToOne: false
             referencedRelation: "hackathon_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_challenges_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "hackathon_challenge_bounties"
             referencedColumns: ["id"]
           },
           {

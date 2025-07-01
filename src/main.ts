@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { TEMPORARY_FOLDER } from './constants';
 import { cacheCreds } from './core/cache';
-import { getProjectChallengesScores, getProjectInformation, getUnJudgedProjects, updateProjectJudgeReportBulk } from './core/devspot';
+import { getProjectChallengesScores, getProjectInformation, getUnJudgedProjects, updateProjectFlagReport, updateProjectJudgeReportBulk } from './core/devspot';
 import BulkJudge from './judge_project';
 import { analyzeProjectForIrregularities } from './judge_project/utils/flag-logic';
 import { addProjectToQueue, getQueueLength, resumeQueue, setBatchRefillCallback, setConcurrency, startQueueProcessing } from './judge_project/utils/queue';
@@ -92,13 +92,19 @@ const judgeProject = async (project: Project, updateProgress: (progress: number,
 
         console.log(`\nProcessing project: ${project.name}`);
         await repomixBundler(project.project_url ?? '');
-        await updateProgress(20, 'Completed Retrieving Code');
+        await updateProgress(20, 'Retrieved Code...Getting Flag Report');
 
         const allChallenges = project.project_challenges?.map(item => item.hackathon_challenges) as HackathonChallenges[];
 
         const challengeArray = allChallenges.map(item => item.id);
 
         const estimatedFileTokens = getEstimtedTokenSize(project?.project_url ?? '');
+
+        const flaggedAnalysis = await analyzeProjectForIrregularities(project, project?.hackathons!);
+
+        await updateProjectFlagReport(project.id, flaggedAnalysis);
+
+        await updateProgress(30, 'Gotten Flag Report, about to Judge');
 
         if (estimatedFileTokens > 500000) {
             await updateJudgingBotScores(project.id, challengeArray, 'Project Codebase is too large to be processed by the AI. Please review the project manually.');
@@ -130,15 +136,11 @@ const judgeProject = async (project: Project, updateProgress: (progress: number,
 
         const response = await judge.projectJudgeAnalysis(updateProgress);
 
-        await updateProgress(80, 'Completed Judging Code..., Getting Flag Report');
+        await updateProgress(80, 'Completed Judging Code..., Saving to Database');
 
-        const flaggedAnalysis = await analyzeProjectForIrregularities(project?.project_url ?? '', project?.hackathons!);
+        const data = await updateProjectJudgeReportBulk(project.id, response);
 
-        await updateProgress(90, 'Completed Flag Analysis..., Saving to Database');
-
-        const data = await updateProjectJudgeReportBulk(project.id, response, flaggedAnalysis);
-
-        await updateProgress(95, 'Saved to Database Successfully');
+        await updateProgress(90, 'Saved to Database Successfully');
 
         const botScoreIds = data?.map(item => item.id);
 

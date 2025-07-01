@@ -105,9 +105,7 @@ const updateProjectJudgeReport = async (projectId: number, challengeId: number, 
     return data;
 };
 
-const updateProjectJudgeReportBulk = async (projectId: number, feedback: FinalBulkAnalysisResult, flaggedAnalysis: ProjectAnalysisResult) => {
-    const { flagged } = flaggedAnalysis;
-
+const updateProjectJudgeReportBulk = async (projectId: number, feedback: FinalBulkAnalysisResult) => {
     // Convert feedback object into array of records to insert
     const recordsToInsert = Object.entries(feedback).map(([challengeId, analysis]) => ({
         project_id: projectId,
@@ -128,7 +126,6 @@ const updateProjectJudgeReportBulk = async (projectId: number, feedback: FinalBu
         technical_score: analysis.technical.score ?? 0,
         ux_score: analysis.ux.score ?? 0,
         ai_judged: true,
-        flagged_comments: flagged?.value ? flagged?.reason : undefined,
     }));
 
     const { data, error } = await supabase
@@ -147,6 +144,39 @@ const updateProjectJudgeReportBulk = async (projectId: number, feedback: FinalBu
     await updateJudgingEntriesWithAiRecord(projectId, feedback);
 
     return data;
+};
+
+const updateProjectFlagReport = async (projectId: number, flaggedAnalysis: ProjectAnalysisResult) => {
+    const { flagged } = flaggedAnalysis;
+
+    // Convert feedback object into array of records to insert
+    const { data, error } = await supabase
+        .from('judging_bot_scores')
+        .update({
+            suspicious_flags: flagged?.value ? flagged?.reason : null,
+        })
+        .eq('project_id', projectId)
+        .select('*');
+
+    if (error) {
+        console.error('Error updating judging feedback:', error);
+        throw error;
+    }
+
+    const { data: entryData, error: entryError } = await supabase
+        .from('judging_entries')
+        .update({
+            suspicious_flags: flagged?.value ? flagged?.reason : null,
+        })
+        .eq('project_id', projectId)
+        .select('*');
+
+    if (entryError) {
+        console.error('Error updating judging feedback:', entryError);
+        throw entryError;
+    }
+
+    return { ...data, entryData };
 };
 
 const updateJudgingEntriesWithAiRecord = async (projectId: number, feedback: FinalBulkAnalysisResult) => {
@@ -266,6 +296,7 @@ export {
     getProjectInformation,
     getUnJudgedProjects,
     sendNotification,
+    updateProjectFlagReport,
     updateProjectJudgeReport,
     updateProjectJudgeReportBulk,
 };
