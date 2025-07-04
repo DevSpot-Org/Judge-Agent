@@ -82,6 +82,13 @@ app.post('/project/generate', async (req: Request, res: Response) => {
     return;
 });
 
+app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
