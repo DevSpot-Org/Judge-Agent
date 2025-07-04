@@ -258,7 +258,7 @@ const getUnJudgedProjects = async () => {
 
     // Group projects by project ID to remove duplicates
     const uniqueProjects = data?.reduce((acc, score) => {
-        if (!acc[score.project.id]) {
+        if (score.project && !acc[score.project.id]) {
             acc[score.project.id] = score.project;
         }
         return acc;
