@@ -10,7 +10,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install dependencies into temp directory
-# This will cache them and speed up future builds
 FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json /temp/dev/
@@ -22,7 +21,6 @@ COPY package.json /temp/prod/
 RUN cd /temp/prod && bun install --production
 
 # Copy node_modules from temp directory
-# Then copy all (non-ignored) project files into the image
 FROM base AS prerelease
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
@@ -34,14 +32,15 @@ COPY --from=prerelease /usr/src/app/src ./src
 COPY --from=prerelease /usr/src/app/package.json .
 
 # Create temp directories and set permissions
+# Make sure the directory is owned by the user that will run the container
 RUN mkdir -p /usr/src/app/temp/repositories && \
-    chown -R bun:bun /usr/src/app/temp
+    chmod 777 /usr/src/app/temp  # More permissive for bind mounts
 
 # Expose port 3000
 EXPOSE 3000
 
-# Set the user to bun for security
-USER bun
+# Don't switch to bun user when using bind mounts with permission issues
+# USER bun
 
 # Run the app with watch mode for development
 CMD ["bun", "--watch", "run", "./src/server.ts"]

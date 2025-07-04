@@ -17,6 +17,7 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+    user: "1000:1000"
     volumes:
       - type: bind
         source: ./src
@@ -26,7 +27,7 @@ services:
         target: /usr/src/app/package.json
       - type: bind
         source: ./temp
-        target: /usr/src/app/temp  # Persistent temp directory
+        target: /usr/src/app/temp
       - type: volume
         target: /usr/src/app/node_modules
 
@@ -43,6 +44,8 @@ services:
 
 volumes:
   redis-data:
+  temp-data:
+
 
 networks:
   app-network:
