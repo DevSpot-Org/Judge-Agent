@@ -248,6 +248,7 @@ const getUnJudgedProjects = async () => {
             `
         )
         .eq('ai_judged', false)
+        .eq('project.submitted', true)
         .eq('general_comments_summary', '""');
 
     if (error) {
