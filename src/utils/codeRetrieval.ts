@@ -44,7 +44,23 @@ const pullSingleFileWithGit = async (repoUrl: string, fileName = 'project.json')
         const sparseFile = `${repoPath}/.git/info/sparse-checkout`;
         await Bun.write(sparseFile, fileName);
 
-        await $`git -C ${repoPath} pull origin main --depth=1`;
+        // Try different common main branch names
+        const commonBranches = ['main', 'master'];
+        let cloneSuccessful = false;
+
+        for (const branch of commonBranches) {
+            try {
+                await $`git -C ${repoPath} pull origin ${branch} --depth=1`;
+                cloneSuccessful = true;
+                break;
+            } catch (error) {
+                console.log(`Branch ${branch} not found, trying next...`);
+            }
+        }
+
+        if (!cloneSuccessful) {
+            throw new Error('Could not find a valid main branch');
+        }
 
         const fileExists = await Bun.file(`${repoPath}/${fileName}`).exists();
 
